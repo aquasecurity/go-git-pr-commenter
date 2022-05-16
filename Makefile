@@ -13,6 +13,5 @@ build:
   -e GOOS=linux \
   -w /build \
   -v `pwd`:/build \
-	-v $GOPATH:/go \
   golang:1.18 \
   go build -o /build/bin/commenter cmd/commenter/main.go || exit 1

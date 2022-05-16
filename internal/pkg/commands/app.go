@@ -28,15 +28,27 @@ func NewApp() *cli.App {
 					Aliases: []string{"v"},
 					Usage:   "The vendor for the comment mock|github|bitbucket",
 				},
-				&cli.StringFlag{
+				&cli.IntFlag{
 					Name:    "start-line",
 					Aliases: []string{"s"},
 					Usage:   "Comment start line",
 				},
-				&cli.StringFlag{
+				&cli.IntFlag{
 					Name:    "end-line",
 					Aliases: []string{"e"},
 					Usage:   "Comment end line",
+				},
+				&cli.StringFlag{
+					Name:  "owner",
+					Usage: "The commit owner",
+				},
+				&cli.StringFlag{
+					Name:  "repo",
+					Usage: "The repo name",
+				},
+				&cli.IntFlag{
+					Name:  "pr_number",
+					Usage: "The pr number",
 				},
 			},
 		},
