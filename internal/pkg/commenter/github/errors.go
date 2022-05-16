@@ -29,13 +29,6 @@ type AbuseRateLimitError struct {
 	BackoffInSeconds int
 }
 
-func newCommentAlreadyWrittenError(filepath, comment string) CommentAlreadyWrittenError {
-	return CommentAlreadyWrittenError{
-		filepath: filepath,
-		comment:  comment,
-	}
-}
-
 func (e CommentAlreadyWrittenError) Error() string {
 	return fmt.Sprintf("The file [%s] already has the comment written [%s]", e.filepath, e.comment)
 }
