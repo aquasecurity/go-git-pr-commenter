@@ -43,26 +43,6 @@ func createConnector(token, owner, repo string, prNumber int) (*connector, error
 	}, nil
 }
 
-// create github connector and check if supplied pr number exists
-func createEnterpriseConnector(token, baseUrl, uploadUrl, owner, repo string, prNumber int) (*connector, error) {
-
-	client, err := newEnterpriseGithubClient(token, baseUrl, uploadUrl)
-	if err != nil {
-		return nil, err
-	}
-	if _, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber); err != nil {
-		return nil, newPrDoesNotExistError(owner, repo, prNumber)
-	}
-
-	return &connector{
-		prs:      client.PullRequests,
-		comments: client.Issues,
-		owner:    owner,
-		repo:     repo,
-		prNumber: prNumber,
-	}, nil
-}
-
 func newGithubClient(token string) *github.Client {
 
 	ctx := context.Background()
@@ -70,20 +50,6 @@ func newGithubClient(token string) *github.Client {
 	tc := oauth2.NewClient(ctx, ts)
 
 	return github.NewClient(tc)
-}
-
-func newEnterpriseGithubClient(token, baseUrl, uploadUrl string) (*github.Client, error) {
-
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(ctx, ts)
-
-	client, err := github.NewEnterpriseClient(baseUrl, uploadUrl, tc)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }
 
 func (c *connector) writeReviewComment(block *github.PullRequestComment, commentId *int64) error {
@@ -102,16 +68,6 @@ func (c *connector) writeReviewComment(block *github.PullRequestComment, comment
 		_, resp, err := c.prs.CreateComment(ctx, c.owner, c.repo, c.prNumber, block)
 		return resp, err
 	})
-}
-
-func (c *connector) writeGeneralComment(comment *github.IssueComment) error {
-
-	ctx := context.Background()
-	writeReviewCommentFn := func() (*github.Response, error) {
-		_, resp, err := c.comments.CreateComment(ctx, c.owner, c.repo, c.prNumber, comment)
-		return resp, err
-	}
-	return writeCommentWithRetries(c.owner, c.repo, c.prNumber, writeReviewCommentFn)
 }
 
 func writeCommentWithRetries(owner, repo string, prNumber int, commentFn commentFn) error {
