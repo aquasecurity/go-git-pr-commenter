@@ -39,15 +39,11 @@ func NewApp() *cli.App {
 					Usage:   "Comment end line",
 				},
 				&cli.StringFlag{
-					Name:  "owner",
-					Usage: "The commit owner",
-				},
-				&cli.StringFlag{
 					Name:  "repo",
 					Usage: "The repo name",
 				},
 				&cli.IntFlag{
-					Name:  "pr_number",
+					Name:  "pr-number",
 					Usage: "The pr number",
 				},
 			},

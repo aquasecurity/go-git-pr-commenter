@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/github"
+	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/gitlab"
 	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/mock"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -17,6 +18,14 @@ func Action(ctx *cli.Context) (err error) {
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
 		r, err := github.NewGithub(token, ctx.String("owner"), ctx.String("repo"), ctx.Int("pr_number"))
+		if err != nil {
+			return err
+		}
+		c = commenter.Repository(r)
+	case "gitlab":
+		token := os.Getenv("GITLAB_TOKEN")
+		r, err := gitlab.NewGitlab(
+			token)
 		if err != nil {
 			return err
 		}
