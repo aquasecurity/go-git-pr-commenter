@@ -1,7 +1,6 @@
-package commands
+package app
 
 import (
-	"github.com/aquasecurity/go-git-pr-commenter/internal/app/commenter"
 	"github.com/urfave/cli/v2"
 )
 
@@ -11,7 +10,7 @@ func NewApp() *cli.App {
 	app.Commands = []*cli.Command{
 		{
 			Name:   "cmd",
-			Action: commenter.Action,
+			Action: Action,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:    "file",
