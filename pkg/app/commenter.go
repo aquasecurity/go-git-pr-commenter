@@ -17,7 +17,7 @@ func Action(ctx *cli.Context) (err error) {
 		c = commenter.Repository(mock.NewMock())
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
-		r, err := github.NewGithub(token, ctx.String("owner"), ctx.String("repo"), ctx.Int("pr_number"))
+		r, err := github.NewGithub(token, ctx.String("owner"), ctx.String("repo"), ctx.Int("pr-number"))
 		if err != nil {
 			return err
 		}

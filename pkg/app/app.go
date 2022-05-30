@@ -45,6 +45,10 @@ func NewApp() *cli.App {
 					Name:  "pr-number",
 					Usage: "The pr number",
 				},
+				&cli.StringFlag{
+					Name:  "owner",
+					Usage: "The repo owner",
+				},
 			},
 		},
 	}
