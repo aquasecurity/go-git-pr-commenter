@@ -6,7 +6,7 @@ command line tool and package based for git comments
 
 GitHub: 
 
-./commenter cmd -f file.yaml -c comment -v github --start-line 17 --end-line 20 --pr_number 9 --repo testing --owner repo_owner  
+./commenter cmd -f file.yaml -c comment -v github --start-line 17 --end-line 20 --pr-number 9 --repo testing --owner repo_owner  
 
 Gitlab:  
 
