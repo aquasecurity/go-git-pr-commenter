@@ -10,12 +10,12 @@ GitHub:
 
 Gitlab:  
 
-export GITLAB_TOKEN=xxxx
-export CI_PROJECT_ID=xxxx
-export CI_MERGE_REQUEST_IID=xxxx
-export CI_API_V4_URL=xxxx
-
-./commenter cmd -f file.yaml -c comment -v gitlab --start-line 18
+export GITLAB_TOKEN=xxxx  
+export CI_PROJECT_ID=xxxx  
+export CI_MERGE_REQUEST_IID=xxxx  
+export CI_API_V4_URL=xxxx  
+  
+./commenter cmd -f file.yaml -c comment -v gitlab --start-line 18  
 
 
 # Credits

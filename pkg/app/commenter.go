@@ -1,11 +1,11 @@
-package commenter
+package app
 
 import (
 	"fmt"
-	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter"
-	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/github"
-	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/gitlab"
-	"github.com/aquasecurity/go-git-pr-commenter/internal/pkg/commenter/mock"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/mock"
 	"github.com/urfave/cli/v2"
 	"os"
 )
