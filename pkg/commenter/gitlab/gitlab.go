@@ -35,7 +35,7 @@ func NewGitlab(token string) (b *Gitlab, err error) {
 		ApiURL:   os.Getenv("CI_API_V4_URL"),
 		Token:    token,
 		Repo:     os.Getenv("CI_PROJECT_ID"),
-		PrNumber: os.Getenv("CI_MERGE_REQUEST_IID"),
+		PrNumber: os.Getenv("CI_MERGE_REQUEST_ID"),
 	}, nil
 }
 
