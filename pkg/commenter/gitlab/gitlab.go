@@ -71,7 +71,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/v4/projects/%s/merge_requests/%s/discussions",
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
 		c.ApiURL, c.Repo, c.PrNumber),
 		strings.NewReader(aa.Encode()))
 	if err != nil {
@@ -95,7 +95,7 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 	var vData []Version
 
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v4/projects/%s/merge_requests/%s/versions",
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/projects/%s/merge_requests/%s/versions",
 		c.ApiURL, c.Repo, c.PrNumber), nil)
 	if err != nil {
 		return v, err
