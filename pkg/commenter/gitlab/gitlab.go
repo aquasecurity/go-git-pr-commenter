@@ -31,11 +31,14 @@ type Gitlab struct {
 }
 
 func NewGitlab(token string) (b *Gitlab, err error) {
+	if len(token) == 0 {
+		return b, fmt.Errorf("failed GITLAB_TOKEN has not been set")
+	}
 	return &Gitlab{
 		ApiURL:   os.Getenv("CI_API_V4_URL"),
 		Token:    token,
 		Repo:     os.Getenv("CI_PROJECT_ID"),
-		PrNumber: os.Getenv("CI_MERGE_REQUEST_ID"),
+		PrNumber: os.Getenv("CI_MERGE_REQUEST_IID"),
 	}, nil
 }
 
@@ -95,6 +98,7 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 	var vData []Version
 
 	client := &http.Client{}
+
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/projects/%s/merge_requests/%s/versions",
 		c.ApiURL, c.Repo, c.PrNumber), nil)
 	if err != nil {
