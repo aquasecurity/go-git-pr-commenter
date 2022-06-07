@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/azure"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/mock"
@@ -26,6 +27,13 @@ func Action(ctx *cli.Context) (err error) {
 		token := os.Getenv("GITLAB_TOKEN")
 		r, err := gitlab.NewGitlab(
 			token)
+		if err != nil {
+			return err
+		}
+		c = commenter.Repository(r)
+	case "azure":
+		token := os.Getenv("AZURE_TOKEN")
+		r, err := azure.NewAzure(token, ctx.String("owner"))
 		if err != nil {
 			return err
 		}
