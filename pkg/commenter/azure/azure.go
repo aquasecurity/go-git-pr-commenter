@@ -13,8 +13,8 @@ type Azure struct {
 	Token    string
 	RepoID   string
 	PrNumber string
-	Owner    string
 	Project  string
+	ApiUrl   string
 }
 
 type LineStruct struct {
@@ -40,11 +40,11 @@ type Comment struct {
 	CommentType     int    `json:"commentType,omitempty"`
 }
 
-func NewAzure(token, owner string) (b *Azure, err error) {
+func NewAzure(token string) (b *Azure, err error) {
 
 	return &Azure{
-		Owner:    owner,
 		Project:  os.Getenv("SYSTEM_TEAMPROJECT"),
+		ApiUrl:   os.Getenv("SYSTEM_COLLECTIONURI"),
 		Token:    token,
 		RepoID:   os.Getenv("BUILD_REPOSITORY_ID"),
 		PrNumber: os.Getenv("SYSTEM_PULLREQUEST_PULLREQUESTID"),
@@ -83,8 +83,8 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
-		c.Owner, c.Project, c.RepoID, c.PrNumber),
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
+		c.ApiUrl, c.Project, c.RepoID, c.PrNumber),
 		strings.NewReader(string(reqBody)))
 	if err != nil {
 		return err
