@@ -39,8 +39,8 @@ func NewGitlab(token string) (b *Gitlab, err error) {
 	}, nil
 }
 
-// WriteMultiLineComment writes a multiline review on a file in the github PR
-func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
+// WriteMultiLineComment writes a multiline review on a file in the gitlab PR
+func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, _ int) error {
 	// In gitlab we support one line only
 	err := c.WriteLineComment(file, comment, startLine)
 	if err != nil {
@@ -56,9 +56,6 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	version, err := c.getLatestVersion()
 	if err != nil {
 		return fmt.Errorf("failed get latest version: %w", err)
-	}
-	if err != nil {
-		return err
 	}
 	aa := url.Values{
 		"position[position_type]": {"text"},
