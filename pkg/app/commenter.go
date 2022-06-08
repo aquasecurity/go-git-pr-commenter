@@ -33,7 +33,7 @@ func Action(ctx *cli.Context) (err error) {
 		c = commenter.Repository(r)
 	case "azure":
 		token := os.Getenv("AZURE_TOKEN")
-		r, err := azure.NewAzure(token, ctx.String("owner"))
+		r, err := azure.NewAzure(token)
 		if err != nil {
 			return err
 		}
