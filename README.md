@@ -29,6 +29,16 @@ export SYSTEM_COLLECTIONURI=xxxx
 
 ./commenter cmd -f /file.yaml -c best_comment -v azure --start-line 1 --end-line 1  --owner repo_organization
 
+BitBucket:
+
+export BITBUCKET_TOKEN=xxxx  
+export BITBUCKET_USER=xxxx
+export BITBUCKET_API_URL=xxxx 
+export BITBUCKET_PR_ID=xxxx
+export BITBUCKET_REPO_FULL_NAME=xxxx
+
+./commenter cmd -f file.yaml -c best_comment -v bitbucket --start-line 1 --end-line 1
+
 # Credits
 
 Initially inspired and based on https://github.com/owenrumney/go-github-pr-commenter/ 
