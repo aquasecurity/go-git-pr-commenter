@@ -49,14 +49,23 @@ func NewBitbucket(userName, token string) (b *Bitbucket, err error) {
 }
 
 // WriteMultiLineComment writes a multiline review on a file in the bitbucket PR
-// Please Note: Currently bitbucket ignores to end-line, and creates a one line comment
-func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
+func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, _ int) error {
+	// In bitbucket we support one line only
+	err := c.WriteLineComment(file, comment, startLine)
+	if err != nil {
+		return fmt.Errorf("failed to write bitbucket multi line comment: %w", err)
+	}
+
+	return nil
+}
+
+// WriteLineComment writes a single review line on a file of the bitbucket PR
+func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 
 	b := Body{
 		Content: Content{Raw: comment},
 		Inline: Inline{
-			From: startLine,
-			To:   endLine,
+			To:   line,
 			Path: file,
 		},
 	}
@@ -84,13 +93,6 @@ func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, endLi
 		b, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("failed write bitbucket line comment: %s", string(b))
 	}
-
-	return nil
-
-}
-
-// WriteLineComment writes a single review line on a file of the bitbucket PR
-func (c *Bitbucket) WriteLineComment(_, _ string, _ int) error {
 
 	return nil
 }
