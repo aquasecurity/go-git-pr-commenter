@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/azure"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/mock"
@@ -34,6 +35,14 @@ func Action(ctx *cli.Context) (err error) {
 	case "azure":
 		token := os.Getenv("AZURE_TOKEN")
 		r, err := azure.NewAzure(token)
+		if err != nil {
+			return err
+		}
+		c = commenter.Repository(r)
+	case "bitbucket":
+		userName := os.Getenv("BITBUCKET_USER")
+		token := os.Getenv("BITBUCKET_TOKEN")
+		r, err := bitbucket.NewBitbucket(userName, token)
 		if err != nil {
 			return err
 		}
