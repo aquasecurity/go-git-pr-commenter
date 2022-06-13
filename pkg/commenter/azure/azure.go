@@ -54,6 +54,10 @@ func NewAzure(token string) (b *Azure, err error) {
 // WriteMultiLineComment writes a multiline review on a file in the azure PR
 func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
 
+	if !strings.HasPrefix(file, "/") {
+		file = fmt.Sprintf("/%s", file)
+	}
+
 	b := Body{
 		Comments: []Comment{
 			{
