@@ -1,6 +1,8 @@
 SHELL=/usr/bin/env bash
 
-
+.PHONY: release
+release:
+	@./scripts/release.sh
 .PHONY: test
 test:
 	go test -v ./...
