@@ -1,6 +1,8 @@
 SHELL=/usr/bin/env bash
 
-
+.PHONY: update-plugin
+update-plugin:
+	@./scripts/update_plugin.sh
 .PHONY: test
 test:
 	go test -v ./...
