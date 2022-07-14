@@ -82,7 +82,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	}
 	if resp.StatusCode != http.StatusCreated {
 		b, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("failed write gitlab line comment: %s", string(b))
+		return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 	}
 
 	return nil
