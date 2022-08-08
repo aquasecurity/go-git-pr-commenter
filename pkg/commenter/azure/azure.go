@@ -23,9 +23,9 @@ type LineStruct struct {
 }
 
 type ThreadContext struct {
-	FilePath      string     `json:"filePath,omitempty"`
-	LeftFileEnd   LineStruct `json:"leftFileEnd,omitempty"`
-	LeftFileStart LineStruct `json:"leftFileStart,omitempty"`
+	FilePath       string     `json:"filePath,omitempty"`
+	RightFileEnd   LineStruct `json:"rightFileEnd,omitempty"`
+	RightFileStart LineStruct `json:"rightFileStart,omitempty"`
 }
 
 type Body struct {
@@ -70,11 +70,11 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		Status: 1,
 		ThreadContext: ThreadContext{
 			FilePath: file,
-			LeftFileEnd: LineStruct{
+			RightFileEnd: LineStruct{
 				Line:   endLine,
 				Offset: 0,
 			},
-			LeftFileStart: LineStruct{
+			RightFileStart: LineStruct{
 				Line:   startLine,
 				Offset: 0,
 			},
