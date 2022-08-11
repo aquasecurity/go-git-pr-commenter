@@ -121,6 +121,10 @@ func (c *Bitbucket) getIdsToRemove(commentIdsToRemove []int, msg string, url str
 	req.SetBasicAuth(c.UserName, c.Token)
 
 	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed calling get api with error: %w", err)
+	}
+
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
