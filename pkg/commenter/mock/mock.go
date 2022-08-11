@@ -6,10 +6,14 @@ func NewMock() *Mock {
 	return &Mock{}
 }
 
-func (c *Mock) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
+func (c *Mock) WriteMultiLineComment(_, _ string, _, _ int) error {
 	return nil
 }
 
-func (c *Mock) WriteLineComment(file, comment string, line int) error {
+func (c *Mock) WriteLineComment(_, _ string, _ int) error {
+	return nil
+}
+
+func (c *Mock) RemovePreviousAquaComments(_ string) error {
 	return nil
 }

@@ -1,11 +1,13 @@
 package azure
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -15,6 +17,15 @@ type Azure struct {
 	PrNumber string
 	Project  string
 	ApiUrl   string
+}
+
+type ThreadsResponse struct {
+	Threads []Thread `json:"value,omitempty"`
+}
+
+type Thread struct {
+	Id       int       `json:"id,omitempty"`
+	Comments []Comment `json:"comments,omitempty"`
 }
 
 type LineStruct struct {
@@ -35,6 +46,7 @@ type Body struct {
 }
 
 type Comment struct {
+	Id              int    `json:"id,omitempty"`
 	ParentCommentId int    `json:"parentCommentId,omitempty"`
 	Content         string `json:"content,omitempty"`
 	CommentType     int    `json:"commentType,omitempty"`
@@ -111,6 +123,65 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 
 // WriteLineComment writes a single review line on a file of the azure PR
 func (c *Azure) WriteLineComment(_, _ string, _ int) error {
+
+	return nil
+}
+
+func (c *Azure) RemovePreviousAquaComments(msg string) error {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
+		c.ApiUrl, c.Project, c.RepoID, c.PrNumber), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth("", c.Token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed reading response body with error: %w", err)
+	}
+
+	commentsResponse := ThreadsResponse{}
+	err = json.Unmarshal(buf.Bytes(), &commentsResponse)
+	if err != nil {
+		return fmt.Errorf("failed unmarshal response body with error: %w", err)
+	}
+
+	for _, thread := range commentsResponse.Threads {
+		for _, comment := range thread.Comments {
+			if strings.Contains(comment.Content, msg) {
+				err = c.deleteComment(thread.Id, comment.Id)
+				if err != nil {
+					return fmt.Errorf("failed deleting comment with error: %w", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Azure) deleteComment(threadId int, commentId int) error {
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads/%s/comments/%s?api-version=6.0",
+		c.ApiUrl, c.Project, c.RepoID, c.PrNumber, strconv.Itoa(threadId), strconv.Itoa(commentId)), nil)
+
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth("", c.Token)
+
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		return err
+	}
 
 	return nil
 }

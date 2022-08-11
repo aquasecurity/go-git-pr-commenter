@@ -193,3 +193,7 @@ func (c *Github) WriteLineComment(file, comment string, line int) error {
 
 	return c.writeCommentIfRequired(prComment)
 }
+
+func (c *Github) RemovePreviousAquaComments(_ string) error {
+	return nil
+}

@@ -1,11 +1,13 @@
 package bitbucket
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,8 +18,14 @@ type Bitbucket struct {
 	PrNumber string
 	ApiUrl   string
 }
+type CommentsResponse struct {
+	Values []Value `json:"values,omitempty"`
+	Next   string  `json:"next"`
+}
 
-type Body struct {
+type Value struct {
+	Id      int     `json:"id,omitempty"`
+	Deleted bool    `json:"deleted,omitempty"`
 	Content Content `json:"content,omitempty"`
 	Inline  Inline  `json:"inline,omitempty"`
 }
@@ -62,7 +70,7 @@ func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, _ int
 // WriteLineComment writes a single review line on a file of the bitbucket PR
 func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 
-	b := Body{
+	b := Value{
 		Content: Content{Raw: comment},
 		Inline: Inline{
 			To:   line,
@@ -92,6 +100,82 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 	if resp.StatusCode != http.StatusCreated {
 		b, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("failed write bitbucket line comment: %s", string(b))
+	}
+
+	return nil
+}
+
+func (c *Bitbucket) getIdsToRemove(commentIdsToRemove []int, msg string, url string) ([]int, error) {
+	client := &http.Client{}
+
+	if url == "" {
+		url = fmt.Sprintf("%s/%s/pullrequests/%s/comments",
+			c.ApiUrl, c.Repo, c.PrNumber)
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth(c.UserName, c.Token)
+
+	resp, err := client.Do(req)
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading response body with error: %w", err)
+	}
+
+	commentsResponse := CommentsResponse{}
+	err = json.Unmarshal(buf.Bytes(), &commentsResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed unmarshal response body with error: %w", err)
+	}
+
+	for _, value := range commentsResponse.Values {
+		if !value.Deleted && strings.Contains(value.Content.Raw, msg) {
+			commentIdsToRemove = append(commentIdsToRemove, value.Id)
+		}
+	}
+
+	if commentsResponse.Next == "" {
+		return commentIdsToRemove, nil
+	}
+	return c.getIdsToRemove(commentIdsToRemove, msg, commentsResponse.Next)
+
+}
+
+func (c *Bitbucket) deletePullRequestComments(commentIdsToRemove []int) error {
+	client := &http.Client{}
+
+	for _, commentId := range commentIdsToRemove {
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/pullrequests/%s/comments/%s",
+			c.ApiUrl, c.Repo, c.PrNumber, strconv.Itoa(commentId)), nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Add("Content-Type", "application/json")
+		req.SetBasicAuth(c.UserName, c.Token)
+
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != 204 {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Bitbucket) RemovePreviousAquaComments(msg string) error {
+	var commentIdsToRemove []int
+	commentIdsToRemove, err := c.getIdsToRemove(commentIdsToRemove, msg, "")
+	if err != nil {
+		return err
+	}
+
+	err = c.deletePullRequestComments(commentIdsToRemove)
+	if err != nil {
+		return err
 	}
 
 	return nil
