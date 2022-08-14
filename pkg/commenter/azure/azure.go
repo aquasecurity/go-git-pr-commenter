@@ -58,6 +58,14 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		file = fmt.Sprintf("/%s", file)
 	}
 
+	if startLine == -1 {
+		startLine = 0
+	}
+
+	if endLine == -1 {
+		endLine = 0
+	}
+
 	b := Body{
 		Comments: []Comment{
 			{

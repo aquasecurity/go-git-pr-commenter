@@ -67,6 +67,12 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		"body":                    {comment},
 	}
 
+	if line == -1 {
+		line = 1
+		aa["position[new_line]"] = []string{strconv.Itoa(line)}
+		aa["position[old_line]"] = []string{strconv.Itoa(line)}
+	}
+
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
 		c.ApiURL, c.Repo, c.PrNumber),
