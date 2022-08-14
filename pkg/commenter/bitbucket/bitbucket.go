@@ -1,9 +1,11 @@
 package bitbucket
 
 import (
-	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -110,33 +112,18 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 }
 
 func (c *Bitbucket) getIdsToRemove(commentIdsToRemove []int, msg string, url string) ([]int, error) {
-	client := &http.Client{}
-
-	if url == "" {
-		url = fmt.Sprintf("%s/%s/pullrequests/%s/comments",
-			c.ApiUrl, c.Repo, c.PrNumber)
+	resp, err := utils.GetComments(url, map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(c.UserName+":"+c.Token))})
+	if err != nil {
+		return nil, fmt.Errorf("failed getting comments with error: %w", err)
 	}
-
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth(c.UserName, c.Token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed calling get api with error: %w", err)
-	}
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed reading response body with error: %w", err)
-	}
+	defer resp.Body.Close()
 
 	commentsResponse := CommentsResponse{}
-	err = json.Unmarshal(buf.Bytes(), &commentsResponse)
+	err = json.Unmarshal(body, &commentsResponse)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshal response body with error: %w", err)
 	}
@@ -154,37 +141,28 @@ func (c *Bitbucket) getIdsToRemove(commentIdsToRemove []int, msg string, url str
 
 }
 
-func (c *Bitbucket) deletePullRequestComments(commentIdsToRemove []int) error {
-	client := &http.Client{}
+func (c *Bitbucket) RemovePreviousAquaComments(msg string) error {
+	var commentIdsToRemove []int
+	commentIdsToRemove, err := c.getIdsToRemove(commentIdsToRemove,
+		msg, fmt.Sprintf("%s/%s/pullrequests/%s/comments",
+			c.ApiUrl,
+			c.Repo,
+			c.PrNumber))
+	if err != nil {
+		return err
+	}
 
 	for _, commentId := range commentIdsToRemove {
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/pullrequests/%s/comments/%s",
-			c.ApiUrl, c.Repo, c.PrNumber, strconv.Itoa(commentId)), nil)
+		err = utils.DeleteComments(
+			fmt.Sprintf("%s/%s/pullrequests/%s/comments/%s",
+				c.ApiUrl,
+				c.Repo,
+				c.PrNumber,
+				strconv.Itoa(commentId)),
+			map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(c.UserName+":"+c.Token))})
 		if err != nil {
 			return err
 		}
-		req.Header.Add("Content-Type", "application/json")
-		req.SetBasicAuth(c.UserName, c.Token)
-
-		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 204 {
-			return err
-		}
 	}
-	return nil
-}
-
-func (c *Bitbucket) RemovePreviousAquaComments(msg string) error {
-	var commentIdsToRemove []int
-	commentIdsToRemove, err := c.getIdsToRemove(commentIdsToRemove, msg, "")
-	if err != nil {
-		return err
-	}
-
-	err = c.deletePullRequestComments(commentIdsToRemove)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

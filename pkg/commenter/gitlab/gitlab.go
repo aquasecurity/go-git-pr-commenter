@@ -1,9 +1,10 @@
 package gitlab
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -154,55 +155,37 @@ func (c *Gitlab) RemovePreviousAquaComments(msg string) error {
 		return err
 	}
 
-	err = c.deleteDiscussionNotes(idsToRemove)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func (c *Gitlab) deleteDiscussionNotes(idsToRemove []DiscussionNote) error {
-	client := &http.Client{}
 	for _, idToRemove := range idsToRemove {
-		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions/%s/notes/%s",
-			c.ApiURL, c.Repo, c.PrNumber, idToRemove.DiscussionId, strconv.Itoa(idToRemove.NoteId)), nil)
+		err = utils.DeleteComments(fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions/%s/notes/%s",
+			c.ApiURL, c.Repo, c.PrNumber, idToRemove.DiscussionId, strconv.Itoa(idToRemove.NoteId)), map[string]string{"PRIVATE-TOKEN": c.Token})
 		if err != nil {
 			return err
 		}
-
-		req.Header.Add("PRIVATE-TOKEN", c.Token)
-		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 204 {
-			return err
-		}
 	}
+
 	return nil
+
 }
 
 func (c *Gitlab) getIdsToRemove(idsToRemove []DiscussionNote, msg, page string) ([]DiscussionNote, error) {
-
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions?page=%s",
-		c.ApiURL, c.Repo, c.PrNumber, page), nil)
+	resp, err := utils.GetComments(
+		fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions?page=%s",
+			c.ApiURL,
+			c.Repo,
+			c.PrNumber,
+			page),
+		map[string]string{"PRIVATE-TOKEN": c.Token})
+	if err != nil {
+		return nil, fmt.Errorf("failed getting comments with error: %w", err)
+	}
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("PRIVATE-TOKEN", c.Token)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed reading response body with error: %w", err)
-	}
+	defer resp.Body.Close()
 
 	var discussionsResponse []Discussion
-	err = json.Unmarshal(buf.Bytes(), &discussionsResponse)
+	err = json.Unmarshal(body, &discussionsResponse)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshal response body with error: %w", err)
 	}

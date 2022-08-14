@@ -1,9 +1,11 @@
 package azure
 
 import (
-	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -51,7 +53,6 @@ type Comment struct {
 	Id              int    `json:"id,omitempty"`
 	ParentCommentId int    `json:"parentCommentId,omitempty"`
 	Content         string `json:"content,omitempty"`
-	CommentType     int    `json:"commentType,omitempty"`
 }
 
 func NewAzure(token string) (b *Azure, err error) {
@@ -85,7 +86,6 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 			{
 				ParentCommentId: 1,
 				Content:         comment,
-				CommentType:     1,
 			},
 		},
 
@@ -138,28 +138,17 @@ func (c *Azure) WriteLineComment(_, _ string, _ int) error {
 }
 
 func (c *Azure) RemovePreviousAquaComments(msg string) error {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
-		c.ApiUrl, c.Project, c.RepoID, c.PrNumber), nil)
+
+	resp, err := utils.GetComments(fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
+		c.ApiUrl, c.Project, c.RepoID, c.PrNumber), map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+c.Token))})
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth("", c.Token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed reading response body with error: %w", err)
-	}
+	defer resp.Body.Close()
 
 	commentsResponse := ThreadsResponse{}
-	err = json.Unmarshal(buf.Bytes(), &commentsResponse)
+	err = json.Unmarshal(body, &commentsResponse)
 	if err != nil {
 		return fmt.Errorf("failed unmarshal response body with error: %w", err)
 	}
@@ -167,31 +156,13 @@ func (c *Azure) RemovePreviousAquaComments(msg string) error {
 	for _, thread := range commentsResponse.Threads {
 		for _, comment := range thread.Comments {
 			if strings.Contains(comment.Content, msg) {
-				err = c.deleteComment(thread.Id, comment.Id)
+				err = utils.DeleteComments(fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads/%s/comments/%s?api-version=6.0",
+					c.ApiUrl, c.Project, c.RepoID, c.PrNumber, strconv.Itoa(thread.Id), strconv.Itoa(comment.Id)), map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+c.Token))})
 				if err != nil {
 					return fmt.Errorf("failed deleting comment with error: %w", err)
 				}
 			}
 		}
 	}
-	return nil
-}
-
-func (c *Azure) deleteComment(threadId int, commentId int) error {
-	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads/%s/comments/%s?api-version=6.0",
-		c.ApiUrl, c.Project, c.RepoID, c.PrNumber, strconv.Itoa(threadId), strconv.Itoa(commentId)), nil)
-
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth("", c.Token)
-
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != 200 {
-		return err
-	}
-
 	return nil
 }
