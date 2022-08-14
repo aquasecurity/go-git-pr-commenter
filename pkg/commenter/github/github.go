@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/google/go-github/v44/github"
 )
 
@@ -111,7 +112,7 @@ func (c *Github) checkCommentRelevant(filename string, line int) bool {
 	for _, file := range c.files {
 		if relevant := func(file *commitFileInfo) bool {
 			if file.FileName == filename && !file.isResolvable() {
-				if (line == -1) || (line >= file.hunkStart && line <= file.hunkEnd) {
+				if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= file.hunkStart && line <= file.hunkEnd) {
 					return true
 				}
 			}
@@ -126,7 +127,7 @@ func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 
 	for _, info := range c.files {
 		if info.FileName == file && !info.isResolvable() {
-			if (line == -1) || (line >= info.hunkStart && line <= info.hunkEnd) {
+			if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= info.hunkStart && line <= info.hunkEnd) {
 				return info, nil
 			}
 		}
@@ -135,7 +136,7 @@ func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 }
 
 func buildComment(file, comment string, line int, info commitFileInfo) *github.PullRequestComment {
-	if line == -1 {
+	if line == commenter.FIRST_AVAILABLE_LINE {
 		line = info.hunkStart
 	}
 

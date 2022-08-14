@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
 
 type Version struct {
@@ -57,7 +59,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if err != nil {
 		return fmt.Errorf("failed get latest version: %w", err)
 	}
-	aa := url.Values{
+	urlValues := url.Values{
 		"position[position_type]": {"text"},
 		"position[base_sha]":      {version.BaseCommitSha},
 		"position[head_sha]":      {version.HeadCommitSha},
@@ -67,16 +69,18 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		"body":                    {comment},
 	}
 
-	if line == -1 {
+	if line == commenter.FIRST_AVAILABLE_LINE {
 		line = 1
-		aa["position[new_line]"] = []string{strconv.Itoa(line)}
-		aa["position[old_line]"] = []string{strconv.Itoa(line)}
+		urlValues["position[new_line]"] = []string{strconv.Itoa(line)}
+		if version.StartCommitSha != version.BaseCommitSha {
+			urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
+		}
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
 		c.ApiURL, c.Repo, c.PrNumber),
-		strings.NewReader(aa.Encode()))
+		strings.NewReader(urlValues.Encode()))
 	if err != nil {
 		return err
 	}
