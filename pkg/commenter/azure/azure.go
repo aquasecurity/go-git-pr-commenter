@@ -141,6 +141,9 @@ func (c *Azure) RemovePreviousAquaComments(msg string) error {
 
 	resp, err := utils.GetComments(fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
 		c.ApiUrl, c.Project, c.RepoID, c.PrNumber), map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+c.Token))})
+	if err != nil {
+		return fmt.Errorf("failed getting comments with error: %w", err)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
