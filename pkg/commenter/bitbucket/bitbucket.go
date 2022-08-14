@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
 
 type Bitbucket struct {
@@ -69,7 +71,9 @@ func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, _ int
 
 // WriteLineComment writes a single review line on a file of the bitbucket PR
 func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
-
+	if line == commenter.FIRST_AVAILABLE_LINE {
+		line = 1
+	}
 	b := Value{
 		Content: Content{Raw: comment},
 		Inline: Inline{

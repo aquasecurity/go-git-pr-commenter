@@ -2,9 +2,11 @@ package github
 
 import (
 	"fmt"
-	"github.com/google/go-github/v44/github"
 	"regexp"
 	"strconv"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
+	"github.com/google/go-github/v44/github"
 )
 
 type Github struct {
@@ -110,7 +112,7 @@ func (c *Github) checkCommentRelevant(filename string, line int) bool {
 	for _, file := range c.files {
 		if relevant := func(file *commitFileInfo) bool {
 			if file.FileName == filename && !file.isResolvable() {
-				if line >= file.hunkStart && line <= file.hunkEnd {
+				if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= file.hunkStart && line <= file.hunkEnd) {
 					return true
 				}
 			}
@@ -125,14 +127,18 @@ func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 
 	for _, info := range c.files {
 		if info.FileName == file && !info.isResolvable() {
-			if line >= info.hunkStart && line <= info.hunkEnd {
+			if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= info.hunkStart && line <= info.hunkEnd) {
 				return info, nil
 			}
 		}
 	}
 	return nil, fmt.Errorf("file not found, shouldn't have got to here")
 }
+
 func buildComment(file, comment string, line int, info commitFileInfo) *github.PullRequestComment {
+	if line == commenter.FIRST_AVAILABLE_LINE {
+		line = info.hunkStart
+	}
 
 	return &github.PullRequestComment{
 		Line:     &line,
@@ -177,6 +183,7 @@ func (c *Github) WriteMultiLineComment(file, comment string, startLine, endLine 
 	if startLine == endLine {
 		return c.WriteLineComment(file, comment, endLine)
 	}
+
 	info, err := c.getFileInfo(file, endLine)
 	if err != nil {
 		return err

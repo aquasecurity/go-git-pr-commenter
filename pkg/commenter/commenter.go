@@ -8,3 +8,5 @@ type Repository interface {
 	// RemovePreviousAquaComments Removing the comments from previous PRs
 	RemovePreviousAquaComments(msg string) error
 }
+
+var FIRST_AVAILABLE_LINE = -1
