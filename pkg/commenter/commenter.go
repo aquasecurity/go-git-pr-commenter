@@ -6,3 +6,5 @@ type Repository interface {
 	// WriteLineComment writes a single review line on a file of the git PR
 	WriteLineComment(file, comment string, line int) error
 }
+
+var FIRST_AVAILABLE_LINE = -1

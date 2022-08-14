@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
 
 type Azure struct {
@@ -56,6 +58,14 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 
 	if !strings.HasPrefix(file, "/") {
 		file = fmt.Sprintf("/%s", file)
+	}
+
+	if startLine == commenter.FIRST_AVAILABLE_LINE {
+		startLine = 0
+	}
+
+	if endLine == commenter.FIRST_AVAILABLE_LINE {
+		endLine = 0
 	}
 
 	b := Body{
