@@ -1,11 +1,15 @@
 package bitbucket
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
@@ -18,8 +22,14 @@ type Bitbucket struct {
 	PrNumber string
 	ApiUrl   string
 }
+type CommentsResponse struct {
+	Values []Value `json:"values,omitempty"`
+	Next   string  `json:"next"`
+}
 
-type Body struct {
+type Value struct {
+	Id      int     `json:"id,omitempty"`
+	Deleted bool    `json:"deleted,omitempty"`
 	Content Content `json:"content,omitempty"`
 	Inline  Inline  `json:"inline,omitempty"`
 }
@@ -66,7 +76,7 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 	if line == commenter.FIRST_AVAILABLE_LINE {
 		line = 1
 	}
-	b := Body{
+	b := Value{
 		Content: Content{Raw: comment},
 		Inline: Inline{
 			To:   line,
@@ -98,5 +108,61 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 		return fmt.Errorf("failed write bitbucket line comment: %s", string(b))
 	}
 
+	return nil
+}
+
+func (c *Bitbucket) getIdsToRemove(commentIdsToRemove []int, msg string, url string) ([]int, error) {
+	resp, err := utils.GetComments(url, map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(c.UserName+":"+c.Token))})
+	if err != nil {
+		return nil, fmt.Errorf("failed getting comments with error: %w", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	commentsResponse := CommentsResponse{}
+	err = json.Unmarshal(body, &commentsResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed unmarshal response body with error: %w", err)
+	}
+
+	for _, value := range commentsResponse.Values {
+		if !value.Deleted && strings.Contains(value.Content.Raw, msg) {
+			commentIdsToRemove = append(commentIdsToRemove, value.Id)
+		}
+	}
+
+	if commentsResponse.Next == "" {
+		return commentIdsToRemove, nil
+	}
+	return c.getIdsToRemove(commentIdsToRemove, msg, commentsResponse.Next)
+
+}
+
+func (c *Bitbucket) RemovePreviousAquaComments(msg string) error {
+	var commentIdsToRemove []int
+	commentIdsToRemove, err := c.getIdsToRemove(commentIdsToRemove,
+		msg, fmt.Sprintf("%s/%s/pullrequests/%s/comments",
+			c.ApiUrl,
+			c.Repo,
+			c.PrNumber))
+	if err != nil {
+		return err
+	}
+
+	for _, commentId := range commentIdsToRemove {
+		err = utils.DeleteComments(
+			fmt.Sprintf("%s/%s/pullrequests/%s/comments/%s",
+				c.ApiUrl,
+				c.Repo,
+				c.PrNumber,
+				strconv.Itoa(commentId)),
+			map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(c.UserName+":"+c.Token))})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

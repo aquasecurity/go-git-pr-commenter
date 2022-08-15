@@ -5,6 +5,8 @@ type Repository interface {
 	WriteMultiLineComment(file, comment string, startLine, endLine int) error
 	// WriteLineComment writes a single review line on a file of the git PR
 	WriteLineComment(file, comment string, line int) error
+	// RemovePreviousAquaComments Removing the comments from previous PRs
+	RemovePreviousAquaComments(msg string) error
 }
 
 var FIRST_AVAILABLE_LINE = -1

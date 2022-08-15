@@ -1,11 +1,15 @@
 package azure
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
@@ -17,6 +21,15 @@ type Azure struct {
 	PrNumber string
 	Project  string
 	ApiUrl   string
+}
+
+type ThreadsResponse struct {
+	Threads []Thread `json:"value,omitempty"`
+}
+
+type Thread struct {
+	Id       int       `json:"id,omitempty"`
+	Comments []Comment `json:"comments,omitempty"`
 }
 
 type LineStruct struct {
@@ -37,9 +50,9 @@ type Body struct {
 }
 
 type Comment struct {
+	Id              int    `json:"id,omitempty"`
 	ParentCommentId int    `json:"parentCommentId,omitempty"`
 	Content         string `json:"content,omitempty"`
-	CommentType     int    `json:"commentType,omitempty"`
 }
 
 func NewAzure(token string) (b *Azure, err error) {
@@ -73,7 +86,6 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 			{
 				ParentCommentId: 1,
 				Content:         comment,
-				CommentType:     1,
 			},
 		},
 
@@ -122,5 +134,38 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 // WriteLineComment writes a single review line on a file of the azure PR
 func (c *Azure) WriteLineComment(_, _ string, _ int) error {
 
+	return nil
+}
+
+func (c *Azure) RemovePreviousAquaComments(msg string) error {
+
+	resp, err := utils.GetComments(fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads?api-version=6.0",
+		c.ApiUrl, c.Project, c.RepoID, c.PrNumber), map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+c.Token))})
+	if err != nil {
+		return fmt.Errorf("failed getting comments with error: %w", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	commentsResponse := ThreadsResponse{}
+	err = json.Unmarshal(body, &commentsResponse)
+	if err != nil {
+		return fmt.Errorf("failed unmarshal response body with error: %w", err)
+	}
+
+	for _, thread := range commentsResponse.Threads {
+		for _, comment := range thread.Comments {
+			if strings.Contains(comment.Content, msg) {
+				err = utils.DeleteComments(fmt.Sprintf("%s%s/_apis/git/repositories/%s/pullRequests/%s/threads/%s/comments/%s?api-version=6.0",
+					c.ApiUrl, c.Project, c.RepoID, c.PrNumber, strconv.Itoa(thread.Id), strconv.Itoa(comment.Id)), map[string]string{"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+c.Token))})
+				if err != nil {
+					return fmt.Errorf("failed deleting comment with error: %w", err)
+				}
+			}
+		}
+	}
 	return nil
 }

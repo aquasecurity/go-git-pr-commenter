@@ -171,6 +171,12 @@ func (c *Github) writeCommentIfRequired(prComment *github.PullRequestComment) er
 
 // WriteMultiLineComment writes a multiline review on a file in the github PR
 func (c *Github) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
+	if startLine == 0 {
+		startLine = 1
+	}
+	if endLine == 0 {
+		endLine = 1
+	}
 	if !c.checkCommentRelevant(file, startLine) || !c.checkCommentRelevant(file, endLine) {
 		return newCommentNotValidError(file, startLine)
 	}
@@ -199,4 +205,8 @@ func (c *Github) WriteLineComment(file, comment string, line int) error {
 	prComment := buildComment(file, comment, line, *info)
 
 	return c.writeCommentIfRequired(prComment)
+}
+
+func (c *Github) RemovePreviousAquaComments(_ string) error {
+	return nil
 }

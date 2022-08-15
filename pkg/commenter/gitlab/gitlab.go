@@ -3,6 +3,8 @@ package gitlab
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,6 +15,20 @@ import (
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
+
+type DiscussionNote struct {
+	DiscussionId string
+	NoteId       int
+}
+type Discussion struct {
+	Id    string `json:"id,omitempty"`
+	Notes []Note `json:"notes,omitempty"`
+}
+
+type Note struct {
+	Id   int    `json:"id,omitempty"`
+	Body string `json:"body,omitempty"`
+}
 
 type Version struct {
 	ID             int       `json:"id"`
@@ -54,6 +70,9 @@ func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, _ int) e
 
 // WriteLineComment writes a single review line on a file of the gitlab PR
 func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
+	if line == 0 {
+		line = 1
+	}
 
 	version, err := c.getLatestVersion()
 	if err != nil {
@@ -126,4 +145,65 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 		v = vData[0]
 	}
 	return v, nil
+}
+
+func (c *Gitlab) RemovePreviousAquaComments(msg string) error {
+
+	var idsToRemove []DiscussionNote
+	idsToRemove, err := c.getIdsToRemove(idsToRemove, msg, "1")
+	if err != nil {
+		return err
+	}
+
+	for _, idToRemove := range idsToRemove {
+		err = utils.DeleteComments(fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions/%s/notes/%s",
+			c.ApiURL, c.Repo, c.PrNumber, idToRemove.DiscussionId, strconv.Itoa(idToRemove.NoteId)), map[string]string{"PRIVATE-TOKEN": c.Token})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+func (c *Gitlab) getIdsToRemove(idsToRemove []DiscussionNote, msg, page string) ([]DiscussionNote, error) {
+	resp, err := utils.GetComments(
+		fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions?page=%s",
+			c.ApiURL,
+			c.Repo,
+			c.PrNumber,
+			page),
+		map[string]string{"PRIVATE-TOKEN": c.Token})
+	if err != nil {
+		return nil, fmt.Errorf("failed getting comments with error: %w", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var discussionsResponse []Discussion
+	err = json.Unmarshal(body, &discussionsResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed unmarshal response body with error: %w", err)
+	}
+
+	for _, discussion := range discussionsResponse {
+		for _, note := range discussion.Notes {
+			if strings.Contains(note.Body, msg) {
+				idsToRemove = append(idsToRemove, DiscussionNote{
+					DiscussionId: discussion.Id,
+					NoteId:       note.Id,
+				})
+			}
+		}
+	}
+
+	if resp.Header.Get("x-next-page") == "" {
+		return idsToRemove, nil
+	}
+	return c.getIdsToRemove(idsToRemove, msg, resp.Header.Get("x-next-page"))
+
 }
