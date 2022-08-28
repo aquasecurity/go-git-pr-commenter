@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
@@ -44,7 +45,7 @@ type Inline struct {
 	Path string `json:"path,omitempty"`
 }
 
-func NewBitbucket(userName, token string) (b *Bitbucket, err error) {
+func CreateClient(userName, token, prNumber, repoName string) (b *Bitbucket, err error) {
 
 	apiUrl := os.Getenv("BITBUCKET_API_URL")
 	if apiUrl == "" {
@@ -55,9 +56,13 @@ func NewBitbucket(userName, token string) (b *Bitbucket, err error) {
 		ApiUrl:   apiUrl,
 		Token:    token,
 		UserName: userName,
-		PrNumber: os.Getenv("BITBUCKET_PR_ID"),
-		Repo:     os.Getenv("BITBUCKET_REPO_FULL_NAME"),
+		PrNumber: prNumber,
+		Repo:     repoName,
 	}, nil
+}
+
+func NewBitbucket(userName, token string) (b *Bitbucket, err error) {
+	return CreateClient(userName, token, os.Getenv("BITBUCKET_PR_ID"), os.Getenv("BITBUCKET_REPO_FULL_NAME"))
 }
 
 // WriteMultiLineComment writes a multiline review on a file in the bitbucket PR
