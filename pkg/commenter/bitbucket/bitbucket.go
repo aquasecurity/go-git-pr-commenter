@@ -68,7 +68,6 @@ func NewBitbucket(userName, token string) (b *Bitbucket, err error) {
 // WriteMultiLineComment writes a multiline review on a file in the bitbucket PR
 func (c *Bitbucket) WriteMultiLineComment(file, comment string, startLine, _ int) error {
 	// In bitbucket we support one line only
-	fmt.Printf("file - %s - comment -%s- starLinr - %s", file, comment, startLine)
 	err := c.WriteLineComment(file, comment, startLine)
 	if err != nil {
 		return fmt.Errorf("failed to write bitbucket multi line comment: %w", err)
@@ -104,7 +103,7 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(c.UserName, c.Token)
 
-	fmt.Printf("REQ %s, Auth %s", req.URL, req.Header["Authorization"])
+	fmt.Printf("REQ %s", req.URL)
 
 	resp, err := client.Do(req)
 	if err != nil {
