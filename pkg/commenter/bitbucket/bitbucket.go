@@ -104,7 +104,7 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(c.UserName, c.Token)
 
-	fmt.Printf("REQ %s", req.URL)
+	fmt.Printf("REQ %s, Auth %s", req.URL, req.Header["Authorization"])
 
 	resp, err := client.Do(req)
 	if err != nil {
