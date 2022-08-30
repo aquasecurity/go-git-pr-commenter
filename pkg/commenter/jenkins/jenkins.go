@@ -19,7 +19,7 @@ type bitbucketPayload struct {
 func NewJenkins() (commenter.Repository, error) {
 	if _, exist := os.LookupEnv("BITBUCKET_ACTOR"); exist {
 		var payload bitbucketPayload
-		err := json.Unmarshal([]byte(os.Getenv("PAYLOAD")), payload)
+		err := json.Unmarshal([]byte(os.Getenv("BITBUCKET_PAYLOAD")), payload)
 		if err != nil {
 			return nil, err
 		}
