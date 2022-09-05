@@ -1,7 +1,6 @@
 package jenkins
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,20 +9,9 @@ import (
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
+	bitbucket_server "github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket-server"
+	bitbucketutils "github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils/bitbucket"
 )
-
-type bitbucketRepositoryOwnerPyaload struct {
-	DisplayName string `json:"display_name"`
-}
-
-type bitbucketRepositoryPayload struct {
-	Name  string
-	Owner bitbucketRepositoryOwnerPyaload
-}
-
-type bitbucketPayload struct {
-	Repository bitbucketRepositoryPayload
-}
 
 func getRepositoryCloneURL(repositoryPath string) (string, error) {
 	if cloneUrl, isExist := os.LookupEnv("GIT_URL"); isExist {
@@ -74,17 +62,21 @@ func getGitRemotes(repositoryPath string) ([][]string, error) {
 	return remotes, nil
 }
 
-func NewJenkins() (commenter.Repository, error) {
+func NewJenkins(baseRef string) (commenter.Repository, error) {
 	repositoryPath := os.Getenv("WORKSPACE")
 	cloneUrl, _ := getRepositoryCloneURL(repositoryPath)
 
-	if strings.Contains(cloneUrl, "bitbucket.org") {
-		payload := &bitbucketPayload{}
-		err := json.Unmarshal([]byte(os.Getenv("BITBUCKET_PAYLOAD")), payload)
-		if err != nil {
-			return nil, err
+	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
+		username := os.Getenv("USERNAME")
+		password := os.Getenv("PASSWORD")
+
+		if strings.Contains(cloneUrl, "bitbucket.org") {
+			return bitbucket.CreateClient(username, password, bitbucketutils.GetPrId(), bitbucketutils.GetRepositoryName())
+		} else { // bitbucket server
+			repoName := bitbucketutils.GetRepositoryName()
+			project, repo := bitbucketutils.GetProjectAndRepo(repoName)
+			return bitbucket_server.NewBitbucketServer(username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
-		return bitbucket.CreateClient(os.Getenv("USERNAME"), os.Getenv("PASSWORD"), os.Getenv("BITBUCKET_PULL_REQUEST_ID"), payload.Repository.Owner.DisplayName+"/"+payload.Repository.Name)
 	}
 
 	return nil, nil
