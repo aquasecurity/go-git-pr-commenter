@@ -62,6 +62,7 @@ type Anchor struct {
 func NewBitbucketServer(userName, token, prNumber, project, repo, baseRef string) (b *BitbucketServer, err error) {
 	changeReport, err := change_report.GenerateChangeReport(baseRef)
 	return &BitbucketServer{
+
 		UserName:     userName,
 		Token:        token,
 		Project:      project,
@@ -87,12 +88,9 @@ func (c *BitbucketServer) WriteLineComment(file, comment string, line int) error
 	}
 
 	changeType := change_report.CONTEXT
-	if changes, ok := c.ChangeReport[file]; ok {
-		for _, change := range changes {
-			if change.StartLine < line && change.EndLine > line {
-				changeType = change.ChangeType
-				break
-			}
+	if filechange, ok := c.ChangeReport[file]; ok {
+		if _, ok := filechange.AddedLines[line]; ok {
+			changeType = change_report.ADDED
 		}
 	}
 
@@ -132,8 +130,11 @@ func (c *BitbucketServer) WriteLineComment(file, comment string, line int) error
 	return nil
 }
 
-func (c *BitbucketServer) getIdsToRemove(commentsToRemove []*Comment, msg string, start int) ([]*Comment, error) {
-	url := utils.UrlWithParams(c.getCommentsUrl(), getCommentsParams(start))
+func (c *BitbucketServer) getIdsToRemove(commentsToRemove []Comment, msg string, start int) ([]Comment, error) {
+	url, err := utils.UrlWithParams(c.getCommentsUrl(), getCommentsParams(start))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create comments url: %w", err)
+	}
 
 	resp, err := utils.GetComments(url, c.getAuthHeaders())
 	if err != nil {
@@ -154,7 +155,7 @@ func (c *BitbucketServer) getIdsToRemove(commentsToRemove []*Comment, msg string
 
 	for _, value := range activitiesResponse.Activities {
 		if value.CommentAction == "ADDED" && value.Action == "COMMENTED" && strings.Contains(value.Comment.Text, msg) {
-			commentsToRemove = append(commentsToRemove, &value.Comment)
+			commentsToRemove = append(commentsToRemove, value.Comment)
 		}
 	}
 
@@ -166,15 +167,15 @@ func (c *BitbucketServer) getIdsToRemove(commentsToRemove []*Comment, msg string
 }
 
 func (c *BitbucketServer) RemovePreviousAquaComments(msg string) error {
-	var commentsToRemove []*Comment
+	var commentsToRemove []Comment
 	commentsToRemove, err := c.getIdsToRemove(commentsToRemove, msg, 0)
 	if err != nil {
 		return err
 	}
 
 	for _, comment := range commentsToRemove {
-		url := utils.UrlWithParams(c.getCommentDeleteUrl(comment.Id), map[string]string{"version": strconv.Itoa(comment.Version)})
-		_ = utils.DeleteComments(url, c.getAuthHeaders())
+		url, _ := utils.UrlWithParams(c.getCommentDeleteUrl(comment.Id), map[string]string{"version": strconv.Itoa(comment.Version)})
+		utils.DeleteComments(url, c.getAuthHeaders())
 	}
 
 	return nil
@@ -185,7 +186,7 @@ func (c *BitbucketServer) getCommentsUrl() string {
 }
 
 func (c *BitbucketServer) getCommentDeleteUrl(id int) string {
-	return fmt.Sprintf("%s/rest/api/1.0/projects/%s/repos/%s/pull-requests/%s/comments/%s", c.ApiUrl, c.Project, c.Repo, c.PrNumber, id)
+	return fmt.Sprintf("%s/rest/api/1.0/projects/%s/repos/%s/pull-requests/%s/comments/%d", c.ApiUrl, c.Project, c.Repo, c.PrNumber, id)
 }
 
 func (c *BitbucketServer) getCommentPostUrl() string {

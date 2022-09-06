@@ -5,14 +5,17 @@ import (
 	"net/url"
 )
 
-func UrlWithParams(baseUrl string, params map[string]string) string {
-	newUrl, _ := url.Parse(baseUrl)
+func UrlWithParams(baseUrl string, params map[string]string) (string, error) {
+	newUrl, err := url.Parse(baseUrl)
+	if err != nil {
+		return "", err
+	}
 	q := newUrl.Query()
 	for key, value := range params {
 		q.Add(key, value)
 	}
 	newUrl.RawQuery = q.Encode()
-	return newUrl.String()
+	return newUrl.String(), nil
 }
 
 func DeleteComments(url string, headers map[string]string) error {
