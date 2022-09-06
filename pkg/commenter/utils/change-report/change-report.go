@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type ChangeType string
@@ -19,8 +17,7 @@ var (
 )
 
 type FileChange struct {
-	Filename   string
-	AddedLines map[int]string
+	AddedLines map[int]bool
 }
 
 type ChangeReport map[string]*FileChange
@@ -28,11 +25,11 @@ type ChangeReport map[string]*FileChange
 func GenerateChangeReport(baseRef string) (ChangeReport, error) {
 	out, err := gitExec("diff", baseRef)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get git diff")
+		return nil, fmt.Errorf("failed to get git diff: %w", err)
 	}
 	report, err := parseDiff(string(out))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse git diff")
+		return nil, fmt.Errorf("failed to parse git diff: %w", err)
 	}
 
 	return *report, nil
@@ -58,16 +55,16 @@ func parseDiff(diffString string) (*ChangeReport, error) {
 		case line == "+++ /dev/null":
 			isFileDeleted = true
 		case strings.HasPrefix(line, newFilePrefix):
-			file.Filename = strings.TrimPrefix(line, newFilePrefix)
-			file.AddedLines = make(map[int]string)
-			diff[file.Filename] = file
+			filename := strings.TrimPrefix(line, newFilePrefix)
+			file.AddedLines = make(map[int]bool)
+			diff[filename] = file
 		case strings.HasPrefix(line, "@@ "):
 			inHunk = true
 
 			re := regexp.MustCompile(`@@ \-(\d+),?(\d+)? \+(\d+),?(\d+)? @@`)
 			m := re.FindStringSubmatch(line)
 			if len(m) < 4 {
-				return nil, errors.New("Error parsing line: " + line)
+				return nil, fmt.Errorf("error parsing line: %s", line)
 			}
 			diffStartLine, err := strconv.Atoi(m[3])
 			if err != nil {
@@ -82,7 +79,7 @@ func parseDiff(diffString string) (*ChangeReport, error) {
 			}
 			if *t != REMOVED {
 				if *t == ADDED {
-					file.AddedLines[lineCount] = line[1:]
+					file.AddedLines[lineCount] = true
 				}
 				lineCount++
 			}
@@ -96,7 +93,7 @@ func gitExec(args ...string) ([]byte, error) {
 	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed run git cmd output: ")
+		return nil, fmt.Errorf("failed run git cmd output: %w", err)
 	}
 
 	return output, nil
