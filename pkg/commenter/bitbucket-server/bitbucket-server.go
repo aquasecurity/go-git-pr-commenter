@@ -59,10 +59,10 @@ type Anchor struct {
 	Path     string `json:"path"`
 }
 
-func NewBitbucketServer(userName, token, prNumber, project, repo, baseRef string) (b *BitbucketServer, err error) {
+func NewBitbucketServer(apiUrl, userName, token, prNumber, project, repo, baseRef string) (b *BitbucketServer, err error) {
 	changeReport, err := change_report.GenerateChangeReport(baseRef)
 	return &BitbucketServer{
-
+		ApiUrl:       apiUrl,
 		UserName:     userName,
 		Token:        token,
 		Project:      project,

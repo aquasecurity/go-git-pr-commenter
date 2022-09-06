@@ -3,6 +3,7 @@ package jenkins
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -75,9 +76,22 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		} else { // bitbucket server
 			repoName := bitbucketutils.GetRepositoryName()
 			project, repo := bitbucketutils.GetProjectAndRepo(repoName)
-			return bitbucket_server.NewBitbucketServer(username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
+			apiUrl, err := getBaseUrl(cloneUrl)
+			if err != nil {
+				return nil, err
+			}
+			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
 	}
 
 	return nil, nil
+}
+
+func getBaseUrl(fullUrl string) (string, error) {
+	u, err := url.Parse(fullUrl)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse url %s - %s", fullUrl, err.Error())
+	}
+
+	return u.Scheme + "://" + u.Host, nil
 }
