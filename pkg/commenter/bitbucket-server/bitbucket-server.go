@@ -61,6 +61,13 @@ type Anchor struct {
 
 func NewBitbucketServer(apiUrl, userName, token, prNumber, project, repo, baseRef string) (b *BitbucketServer, err error) {
 	changeReport, err := change_report.GenerateChangeReport(baseRef)
+	fmt.Println("Creating Bitbucket Server client parameters:")
+	fmt.Println("apiUrl: ", apiUrl)
+	fmt.Println("userName: ", userName)
+	fmt.Println("prNumber: ", prNumber)
+	fmt.Println("project: ", project)
+	fmt.Println("repo: ", repo)
+
 	return &BitbucketServer{
 		ApiUrl:       apiUrl,
 		UserName:     userName,
@@ -175,7 +182,10 @@ func (c *BitbucketServer) RemovePreviousAquaComments(msg string) error {
 
 	for _, comment := range commentsToRemove {
 		url, _ := utils.UrlWithParams(c.getCommentDeleteUrl(comment.Id), map[string]string{"version": strconv.Itoa(comment.Version)})
-		utils.DeleteComments(url, c.getAuthHeaders())
+		err := utils.DeleteComments(url, c.getAuthHeaders())
+		if err != nil {
+			fmt.Printf("failed to delete comment with id %d: %s", comment.Id, err)
+		}
 	}
 
 	return nil

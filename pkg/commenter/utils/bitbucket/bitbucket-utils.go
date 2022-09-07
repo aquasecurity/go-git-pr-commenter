@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -22,28 +23,36 @@ type bitbucketPayload struct {
 
 func GetPrId() string {
 	if id, exists := os.LookupEnv("BITBUCKET_PULL_REQUEST_ID"); exists {
+		fmt.Println("Using pull request id from BITBUCKET_PULL_REQUEST_ID: ", id)
 		return id
 	}
 
 	if id, exists := os.LookupEnv("CHANGE_ID"); exists {
+		fmt.Println("Using pull request id from CHANGE_ID: ", id)
 		return id
 	}
 
+	fmt.Println("Could not find pull request id")
 	return ""
 }
 
-func GetRepositoryName() string {
+func GetRepositoryName(cloneUrl string) string {
 	payload, exists := GetBitbucketPayload()
 	if exists {
-		return payload.Repository.Owner.DisplayName + "/" + payload.Repository.Name
-	}
-
-	if url, exists := os.LookupEnv("GIT_URL"); exists {
-		nameRegexp := regexp.MustCompile(`(([^\/]+)\/([^\/]+))(?:\.git)$`)
-		name := nameRegexp.FindStringSubmatch(url)[1]
+		name := payload.Repository.Owner.DisplayName + "/" + payload.Repository.Name
+		fmt.Println("Using repository name from BITBUCKET_PAYLOAD: ", name)
 		return name
 	}
 
+	nameRegexp := regexp.MustCompile(`(([^\/]+)\/([^\/]+))(?:\.git)$`)
+	matches := nameRegexp.FindStringSubmatch(cloneUrl)
+	if len(matches) > 1 {
+		name := nameRegexp.FindStringSubmatch(cloneUrl)[1]
+		fmt.Println("Using repository name from cloneUrl: ", name)
+		return name
+	}
+
+	fmt.Println("Could not find repository name")
 	return ""
 }
 
