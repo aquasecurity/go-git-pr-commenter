@@ -52,6 +52,12 @@ func CreateClient(userName, token, prNumber, repoName string) (b *Bitbucket, err
 		apiUrl = "https://api.bitbucket.org/2.0/repositories"
 	}
 
+	fmt.Println("Creating Bitbucket client parameters:")
+	fmt.Println("apiUrl: ", apiUrl)
+	fmt.Println("userName: ", userName)
+	fmt.Println("prNumber: ", prNumber)
+	fmt.Println("repo: ", repoName)
+
 	return &Bitbucket{
 		ApiUrl:   apiUrl,
 		Token:    token,
