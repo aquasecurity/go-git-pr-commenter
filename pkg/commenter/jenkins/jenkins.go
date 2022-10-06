@@ -15,6 +15,9 @@ import (
 
 func NewJenkins(baseRef string) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL()
+	fmt.Printf("clone url is %s", cloneUrl)
+	_, r := bitbucketutils.GetBitbucketPayload()
+	fmt.Printf("bitbucketutils.GetBitbucketPayload() returns %b", r)
 
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
@@ -37,6 +40,8 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			}
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
+	} else if strings.Contains(cloneUrl, "github") {
+
 	}
 
 	return nil, nil
