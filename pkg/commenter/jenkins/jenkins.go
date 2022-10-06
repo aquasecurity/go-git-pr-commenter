@@ -2,8 +2,11 @@ package jenkins
 
 import (
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"net/url"
 	"os"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
@@ -37,6 +40,32 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			}
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
+	} else if strings.Contains(cloneUrl, "github") {
+
+		repoName, err := getLastPathSegment(cloneUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		token, _ := os.LookupEnv("GITHUB_TOKEN")
+		owner, _ := os.LookupEnv("USERNAME")
+		prNumber, _ := os.LookupEnv("CHANGE_ID")
+		prNumberInt, _ := strconv.Atoi(prNumber)
+
+		if strings.Contains(cloneUrl, "github.com") {
+			return github.NewGithub(
+				token,
+				owner,
+				strings.TrimSuffix(repoName, ".git"),
+				prNumberInt)
+		} else { // github server
+			apiUrl, err := getBaseUrl(cloneUrl)
+			if err != nil {
+				return nil, err
+			}
+			return github.NewGithubServer(apiUrl, token, owner, strings.TrimSuffix(repoName, ".git"), prNumberInt)
+		}
+
 	}
 
 	return nil, nil
@@ -49,4 +78,13 @@ func getBaseUrl(fullUrl string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s://%s", u.Scheme, u.Host), nil
+}
+
+func getLastPathSegment(fullUrl string) (string, error) {
+	u, err := url.Parse(fullUrl)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse url %s - %s", fullUrl, err.Error())
+	}
+
+	return path.Base(u.Path), nil
 }
