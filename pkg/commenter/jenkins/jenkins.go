@@ -2,8 +2,10 @@ package jenkins
 
 import (
 	"fmt"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
@@ -40,6 +42,34 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			}
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
+	} else if strings.Contains(cloneUrl, "github") {
+
+		gitUrl, _ := os.LookupEnv("GIT_URL")
+		splitter := strings.Split(gitUrl, "/")
+		a := splitter[len(splitter)-1]
+
+		token, _ := os.LookupEnv("GITHUB_TOKEN")
+		userName, _ := os.LookupEnv("USERNAME")
+		changeId, _ := os.LookupEnv("CHANGE_ID")
+		changeIdInt, _ := strconv.Atoi(changeId)
+
+		if strings.Contains(cloneUrl, "github.com") {
+
+			return github.NewGithub(
+				token,
+				userName,
+				strings.TrimSuffix(a, ".git"),
+				changeIdInt)
+		} else { // github server
+			//repoName := bitbucketutils.GetRepositoryName(cloneUrl)
+			//project, repo := bitbucketutils.GetProjectAndRepo(repoName)
+			apiUrl, err := getBaseUrl(cloneUrl)
+			if err != nil {
+				return nil, err
+			}
+			return github.NewGithubServer(apiUrl, token, userName, strings.TrimSuffix(a, ".git"), changeIdInt)
+		}
+
 	}
 
 	return nil, nil
