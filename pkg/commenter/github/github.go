@@ -28,13 +28,36 @@ func NewGithub(token, owner, repo string, prNumber int) (gh *Github, err error) 
 	if len(token) == 0 {
 		return gh, fmt.Errorf("failed GITHUB_TOKEN has not been set")
 	}
-	ghConnector, err := createConnector(token, owner, repo, prNumber)
+	ghConnector, err := createConnector("", token, owner, repo, prNumber, false)
 	if err != nil {
 		return gh, fmt.Errorf("failed create github connector: %w", err)
 	}
 	commitFileInfos, existingComments, err := loadPr(ghConnector)
 	if err != nil {
 		return nil, fmt.Errorf("failed load pr: %w", err)
+	}
+	return &Github{
+		Token:            token,
+		Owner:            owner,
+		PrNumber:         prNumber,
+		Repo:             repo,
+		ghConnector:      ghConnector,
+		files:            commitFileInfos,
+		existingComments: existingComments,
+	}, nil
+}
+
+func NewGithubServer(apiUrl, token, owner, repo string, prNumber int) (gh *Github, err error) {
+	if len(token) == 0 {
+		return gh, fmt.Errorf("failed GITHUB_TOKEN has not been set, for github Enterprise")
+	}
+	ghConnector, err := createConnector(apiUrl, token, owner, repo, prNumber, true)
+	if err != nil {
+		return gh, fmt.Errorf("failed create github connector, for github Enterprise: %w", err)
+	}
+	commitFileInfos, existingComments, err := loadPr(ghConnector)
+	if err != nil {
+		return nil, fmt.Errorf("failed load pr, for github Enterprise: %w", err)
 	}
 	return &Github{
 		Token:            token,

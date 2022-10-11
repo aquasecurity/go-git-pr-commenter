@@ -27,9 +27,12 @@ type existingComment struct {
 type commentFn func() (*github.Response, error)
 
 // create github connector and check if supplied pr number exists
-func createConnector(token, owner, repo string, prNumber int) (*connector, error) {
+func createConnector(apiUrl, token, owner, repo string, prNumber int, isEnterprise bool) (*connector, error) {
 
-	client := newGithubClient(token)
+	client, err := newGithubClient(apiUrl, token, isEnterprise)
+	if err != nil {
+		return nil, err
+	}
 	if _, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber); err != nil {
 		return nil, newPrDoesNotExistError(owner, repo, prNumber)
 	}
@@ -43,13 +46,17 @@ func createConnector(token, owner, repo string, prNumber int) (*connector, error
 	}, nil
 }
 
-func newGithubClient(token string) *github.Client {
+func newGithubClient(apiUrl, token string, isEnterprise bool) (*github.Client, error) {
 
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(ctx, ts)
 
-	return github.NewClient(tc)
+	if isEnterprise {
+		return github.NewEnterpriseClient(apiUrl, apiUrl, tc)
+	}
+
+	return github.NewClient(tc), nil
 }
 
 func (c *connector) writeReviewComment(block *github.PullRequestComment, commentId *int64) error {
