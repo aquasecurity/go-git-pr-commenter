@@ -3,6 +3,8 @@ package jenkins
 import (
 	"fmt"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
+	"github.com/argonsecurity/go-environments/enums"
+	"github.com/argonsecurity/go-environments/environments/jenkins"
 	"net/url"
 	"os"
 	"path"
@@ -18,6 +20,7 @@ import (
 
 func NewJenkins(baseRef string) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL()
+	scmSource, _ := jenkins.DiscoverSCMSource(cloneUrl)
 
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
@@ -40,7 +43,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			}
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
-	} else if strings.Contains(cloneUrl, "github") {
+	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 
 		repoName, err := getLastPathSegment(cloneUrl)
 		if err != nil {
@@ -52,13 +55,13 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		prNumber, _ := os.LookupEnv("CHANGE_ID")
 		prNumberInt, _ := strconv.Atoi(prNumber)
 
-		if strings.Contains(cloneUrl, "github.com") {
+		if scmSource == enums.Github {
 			return github.NewGithub(
 				token,
 				owner,
 				strings.TrimSuffix(repoName, ".git"),
 				prNumberInt)
-		} else { // github server
+		} else if scmSource == enums.GithubServer {
 			apiUrl, err := getBaseUrl(cloneUrl)
 			if err != nil {
 				return nil, err
