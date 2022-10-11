@@ -45,28 +45,32 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 
-		repoName, err := getLastPathSegment(cloneUrl)
+		lastPathSegment, err := getLastPathSegment(cloneUrl)
 		if err != nil {
 			return nil, err
 		}
+		repoName := strings.TrimSuffix(lastPathSegment, ".git")
 
-		token, _ := os.LookupEnv("GITHUB_TOKEN")
-		owner, _ := os.LookupEnv("USERNAME")
-		prNumber, _ := os.LookupEnv("CHANGE_ID")
-		prNumberInt, _ := strconv.Atoi(prNumber)
+		token := os.Getenv("GITHUB_TOKEN")
+		owner := os.Getenv("USERNAME")
+		prNumber := os.Getenv("CHANGE_ID")
+		prNumberInt, err := strconv.Atoi(prNumber)
+		if err != nil {
+			return nil, fmt.Errorf("failed converting prNumber to int, %s: %s", prNumber, err.Error())
+		}
 
 		if scmSource == enums.Github {
 			return github.NewGithub(
 				token,
 				owner,
-				strings.TrimSuffix(repoName, ".git"),
+				repoName,
 				prNumberInt)
 		} else if scmSource == enums.GithubServer {
 			apiUrl, err := getBaseUrl(cloneUrl)
 			if err != nil {
 				return nil, err
 			}
-			return github.NewGithubServer(apiUrl, token, owner, strings.TrimSuffix(repoName, ".git"), prNumberInt)
+			return github.NewGithubServer(apiUrl, token, owner, repoName, prNumberInt)
 		}
 
 	}
