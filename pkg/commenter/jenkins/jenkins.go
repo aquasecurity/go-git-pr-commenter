@@ -43,7 +43,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			}
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
-	} else if scmSource == enums.GithubServer || scmSource == enums.Github || len(os.Getenv("GITHUB_TOKEN")) != 0 {
+	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 
 		lastPathSegment, err := getLastPathSegment(cloneUrl)
 		if err != nil {
@@ -59,7 +59,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			return nil, fmt.Errorf("failed converting prNumber to int, %s: %s", prNumber, err.Error())
 		}
 
-		if scmSource == enums.Github || strings.Contains(cloneUrl, "github.com") {
+		if scmSource == enums.Github {
 			return github.NewGithub(
 				token,
 				owner,
