@@ -65,7 +65,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 				owner,
 				repoName,
 				prNumberInt)
-		} else if scmSource == enums.GithubServer {
+		} else { //github server
 			apiUrl, err := getBaseUrl(cloneUrl)
 			if err != nil {
 				return nil, err
