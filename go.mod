@@ -5,12 +5,12 @@ go 1.18
 require (
 	github.com/argonsecurity/go-environments v0.1.25
 	github.com/google/go-github/v44 v44.1.0
-	github.com/urfave/cli/v2 v2.8.1
+	github.com/urfave/cli/v2 v2.19.2
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 )
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
