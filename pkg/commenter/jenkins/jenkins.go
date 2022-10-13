@@ -5,7 +5,6 @@ import (
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/argonsecurity/go-environments/enums"
 	"github.com/argonsecurity/go-environments/environments/jenkins"
-	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -45,9 +44,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 		_, org, repoName, err := jenkins.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
-		log.Printf("org %s, repo %s", org, repoName)
 		token := os.Getenv("GITHUB_TOKEN")
-
 		prNumber := os.Getenv("CHANGE_ID")
 		prNumberInt, err := strconv.Atoi(prNumber)
 		if err != nil {
