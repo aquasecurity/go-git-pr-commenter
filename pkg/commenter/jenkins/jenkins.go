@@ -47,6 +47,10 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		_, org, repoName, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
 		token := os.Getenv("GITHUB_TOKEN")
 		prNumber := os.Getenv("CHANGE_ID")
+		// for gh single jenkins pipeline
+		if prNumber == "" {
+			prNumber = os.Getenv("ghprbPullId")
+		}
 		prNumberInt, err := strconv.Atoi(prNumber)
 		if err != nil {
 			return nil, fmt.Errorf("failed converting prNumber to int, %s: %s", prNumber, err.Error())
