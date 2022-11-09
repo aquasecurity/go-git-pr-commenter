@@ -20,7 +20,10 @@ import (
 
 func NewJenkins(baseRef string) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL()
+	fmt.Println("clone url is ", cloneUrl)
 	scmSource, scmApiUrl := jenkins.GetRepositorySource(cloneUrl)
+	fmt.Println("scmSource is ", scmSource)
+	fmt.Println("scmApiUrl is ", scmApiUrl)
 
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
