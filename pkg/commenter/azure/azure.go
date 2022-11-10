@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
@@ -94,11 +95,11 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 			FilePath: file,
 			RightFileEnd: LineStruct{
 				Line:   endLine,
-				Offset: 0,
+				Offset: 999,
 			},
 			RightFileStart: LineStruct{
 				Line:   startLine,
-				Offset: 0,
+				Offset: 1,
 			},
 		},
 	}
