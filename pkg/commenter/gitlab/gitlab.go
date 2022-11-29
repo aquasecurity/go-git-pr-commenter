@@ -108,7 +108,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		fmt.Println("failed to create comments, trying again")
+		fmt.Println("failed to create comment, trying again")
 		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
 			c.ApiURL, c.Repo, c.PrNumber),
@@ -127,7 +127,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
 
-		fmt.Println("comments created successfully")
+		fmt.Println("comment created successfully")
 	}
 
 	return nil
