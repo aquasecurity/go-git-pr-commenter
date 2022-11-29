@@ -3,7 +3,6 @@ package gitlab
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
@@ -71,7 +72,7 @@ func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, _ int) e
 // WriteLineComment writes a single review line on a file of the gitlab PR
 func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if line == 0 {
-		line = 1
+		line = commenter.FIRST_AVAILABLE_LINE
 	}
 
 	version, err := c.getLatestVersion()
@@ -91,9 +92,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if line == commenter.FIRST_AVAILABLE_LINE {
 		line = 1
 		urlValues["position[new_line]"] = []string{strconv.Itoa(line)}
-		if version.StartCommitSha != version.BaseCommitSha {
-			urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
-		}
+		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
 	}
 
 	client := &http.Client{}
