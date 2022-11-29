@@ -72,7 +72,7 @@ func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, _ int) e
 // WriteLineComment writes a single review line on a file of the gitlab PR
 func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if line == 0 {
-		line = commenter.FIRST_AVAILABLE_LINE
+		line = 1
 	}
 
 	version, err := c.getLatestVersion()
@@ -92,7 +92,6 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if line == commenter.FIRST_AVAILABLE_LINE {
 		line = 1
 		urlValues["position[new_line]"] = []string{strconv.Itoa(line)}
-		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
 	}
 
 	client := &http.Client{}
@@ -109,8 +108,26 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		b, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
+		fmt.Println("failed to create comments, trying again")
+		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
+			c.ApiURL, c.Repo, c.PrNumber),
+			strings.NewReader(urlValues.Encode()))
+		if err != nil {
+			return err
+		}
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("PRIVATE-TOKEN", c.Token)
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusCreated {
+			b, _ := ioutil.ReadAll(resp.Body)
+			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
+		}
+
+		fmt.Println("comments created successfully")
 	}
 
 	return nil
