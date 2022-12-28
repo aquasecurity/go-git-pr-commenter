@@ -44,7 +44,10 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
-		_, org, repoName, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
+		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing url with error: %s", err.Error())
+		}
 		token := os.Getenv("GITHUB_TOKEN")
 		prNumber := os.Getenv("CHANGE_ID")
 		// for gh single jenkins pipeline
