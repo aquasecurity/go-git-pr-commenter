@@ -5,10 +5,14 @@ import (
 	"strings"
 )
 
+type chunkLines struct {
+	Start int
+	End   int
+}
+
 type commitFileInfo struct {
 	FileName     string
-	hunkStart    int
-	hunkEnd      int
+	ChunkLines   []chunkLines
 	sha          string
 	likelyBinary bool
 }
@@ -40,7 +44,13 @@ func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
 }
 
 func (cfi commitFileInfo) calculatePosition(line int) *int {
-	position := line - cfi.hunkStart
+	var ch chunkLines
+	for _, lines := range cfi.ChunkLines {
+		if line >= lines.Start && line <= lines.End {
+			ch = lines
+		}
+	}
+	position := line - ch.Start
 	return &position
 }
 
@@ -49,5 +59,5 @@ func (cfi commitFileInfo) isBinary() bool {
 }
 
 func (cfi commitFileInfo) isResolvable() bool {
-	return cfi.isBinary() && cfi.hunkStart != -1 && cfi.hunkEnd != -1
+	return cfi.isBinary() //&& cfi.hunkStart != -1 && cfi.hunkEnd != -1
 }
