@@ -150,6 +150,10 @@ func (c *Github) checkCommentRelevant(filename string, line int) bool {
 }
 
 func checkIfLineInChunk(line int, file *commitFileInfo) bool {
+	if file.FileName == "go.mod" && len(file.ChunkLines) > 0 {
+		return true
+	}
+
 	for _, lines := range file.ChunkLines {
 		if line >= lines.Start && line <= lines.End {
 			return true
