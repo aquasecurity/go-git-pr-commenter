@@ -155,6 +155,7 @@ func (c *Azure) RemovePreviousAquaComments(msg string) error {
 
 	commentsResponse := ThreadsResponse{}
 	err = json.Unmarshal(body, &commentsResponse)
+	fmt.Println(body)
 	if err != nil {
 		return fmt.Errorf("failed unmarshal response body with error: %w", err)
 	}
