@@ -3,14 +3,24 @@ package github
 import (
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
+
+type chunkLines struct {
+	Start int
+	End   int
+}
 
 type commitFileInfo struct {
 	FileName     string
-	hunkStart    int
-	hunkEnd      int
+	ChunkLines   []chunkLines
 	sha          string
 	likelyBinary bool
+}
+
+func (cl *chunkLines) Contains(line int) bool {
+	return line >= cl.Start && line <= cl.End
 }
 
 func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
@@ -40,7 +50,11 @@ func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
 }
 
 func (cfi commitFileInfo) calculatePosition(line int) *int {
-	position := line - cfi.hunkStart
+	ch, _ := lo.Find(cfi.ChunkLines, func(lines chunkLines) bool {
+		return lines.Contains(line)
+	})
+
+	position := line - ch.Start
 	return &position
 }
 
@@ -49,5 +63,5 @@ func (cfi commitFileInfo) isBinary() bool {
 }
 
 func (cfi commitFileInfo) isResolvable() bool {
-	return cfi.isBinary() && cfi.hunkStart != -1 && cfi.hunkEnd != -1
+	return cfi.isBinary()
 }

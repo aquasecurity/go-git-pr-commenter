@@ -7,6 +7,7 @@ import (
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/google/go-github/v44/github"
+	"github.com/samber/lo"
 )
 
 type Github struct {
@@ -20,7 +21,7 @@ type Github struct {
 }
 
 var (
-	patchRegex     = regexp.MustCompile(`^@@.*\d [\+\-](\d+),?(\d+)?.+?@@`)
+	patchRegex     = regexp.MustCompile(`@@.*\d [\+\-](\d+),?(\d+)?.+?@@`)
 	commitRefRegex = regexp.MustCompile(".+ref=(.+)")
 )
 
@@ -86,7 +87,7 @@ func loadPr(ghConnector *connector) ([]*commitFileInfo, []*existingComment, erro
 func getCommitInfo(file *github.CommitFile) (cfi *commitFileInfo, err error) {
 	var isBinary bool
 	patch := file.GetPatch()
-	hunkStart, hunkEnd, err := parseHunkPositions(patch, *file.Filename)
+	lines, err := parseChunkPositions(patch, *file.Filename)
 	if err != nil {
 		return nil, err
 	}
@@ -99,35 +100,37 @@ func getCommitInfo(file *github.CommitFile) (cfi *commitFileInfo, err error) {
 
 	return &commitFileInfo{
 		FileName:     *file.Filename,
-		hunkStart:    hunkStart,
-		hunkEnd:      hunkStart + (hunkEnd - 1),
+		ChunkLines:   lines,
 		sha:          sha,
 		likelyBinary: isBinary,
 	}, nil
 }
-func parseHunkPositions(patch, filename string) (hunkStart int, hunkEnd int, err error) {
+func parseChunkPositions(patch, filename string) (lines []chunkLines, err error) {
 	if patch != "" {
 		groups := patchRegex.FindAllStringSubmatch(patch, -1)
 		if len(groups) < 1 {
-			return 0, 0, fmt.Errorf("the patch details for [%s] could not be resolved", filename)
+			return nil, fmt.Errorf("the patch details for [%s] could not be resolved", filename)
 		}
 
-		patchGroup := groups[0]
-		endPos := 2
-		if len(patchGroup) > 2 && patchGroup[2] == "" {
-			endPos = 1
-		}
+		for _, patchGroup := range groups {
+			endPos := 2
+			if len(patchGroup) > 2 && patchGroup[2] == "" {
+				endPos = 1
+			}
 
-		hunkStart, err = strconv.Atoi(patchGroup[1])
-		if err != nil {
-			hunkStart = -1
-		}
-		hunkEnd, err = strconv.Atoi(patchGroup[endPos])
-		if err != nil {
-			hunkEnd = -1
+			chunkStart, err := strconv.Atoi(patchGroup[1])
+			if err != nil {
+				chunkStart = -1
+			}
+			chunkEnd, err := strconv.Atoi(patchGroup[endPos])
+			if err != nil {
+				chunkEnd = -1
+			}
+
+			lines = append(lines, chunkLines{chunkStart, chunkStart + (chunkEnd - 1)})
 		}
 	}
-	return hunkStart, hunkEnd, nil
+	return lines, nil
 }
 
 func (c *Github) checkCommentRelevant(filename string, line int) bool {
@@ -135,7 +138,7 @@ func (c *Github) checkCommentRelevant(filename string, line int) bool {
 	for _, file := range c.files {
 		if relevant := func(file *commitFileInfo) bool {
 			if file.FileName == filename && !file.isResolvable() {
-				if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= file.hunkStart && line <= file.hunkEnd) {
+				if (line == commenter.FIRST_AVAILABLE_LINE) || (checkIfLineInChunk(line, file)) {
 					return true
 				}
 			}
@@ -146,11 +149,24 @@ func (c *Github) checkCommentRelevant(filename string, line int) bool {
 	}
 	return false
 }
+
+func checkIfLineInChunk(line int, file *commitFileInfo) bool {
+	if file.FileName == "go.mod" && len(file.ChunkLines) > 0 {
+		return true
+	}
+
+	_, found := lo.Find(file.ChunkLines, func(lines chunkLines) bool {
+		return lines.Contains(line)
+	})
+
+	return found
+}
+
 func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 
 	for _, info := range c.files {
 		if info.FileName == file && !info.isResolvable() {
-			if (line == commenter.FIRST_AVAILABLE_LINE) || (line >= info.hunkStart && line <= info.hunkEnd) {
+			if (line == commenter.FIRST_AVAILABLE_LINE) || (checkIfLineInChunk(line, info)) {
 				return info, nil
 			}
 		}
@@ -158,9 +174,17 @@ func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 	return nil, fmt.Errorf("file not found, shouldn't have got to here")
 }
 
+func getFirstChunkLine(file commitFileInfo) int {
+	lines := lo.MinBy(file.ChunkLines, func(lines chunkLines, minLines chunkLines) bool {
+		return lines.Start < minLines.Start
+
+	})
+	return lines.Start
+}
+
 func buildComment(file, comment string, line int, info commitFileInfo) *github.PullRequestComment {
 	if line == commenter.FIRST_AVAILABLE_LINE {
-		line = info.hunkStart
+		line = getFirstChunkLine(info)
 	}
 
 	return &github.PullRequestComment{
@@ -200,6 +224,7 @@ func (c *Github) WriteMultiLineComment(file, comment string, startLine, endLine 
 	if endLine == 0 {
 		endLine = 1
 	}
+
 	if !c.checkCommentRelevant(file, startLine) || !c.checkCommentRelevant(file, endLine) {
 		return newCommentNotValidError(file, startLine)
 	}
