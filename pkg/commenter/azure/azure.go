@@ -126,8 +126,8 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println(resp.Body)
 		b, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println(b, resp.StatusCode)
 		return fmt.Errorf("failed write azure line comment: %s", string(b))
 	}
 
