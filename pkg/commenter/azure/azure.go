@@ -69,9 +69,6 @@ func NewAzure(token string) (b *Azure, err error) {
 
 // WriteMultiLineComment writes a multiline review on a file in the azure PR
 func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
-
-	fmt.Println("initial strat line:", startLine, " end line:", endLine, " file:", file)
-
 	if !strings.HasPrefix(file, "/") {
 		file = fmt.Sprintf("/%s", file)
 	}
@@ -127,7 +124,6 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 	}
 	if resp.StatusCode != http.StatusOK {
 		b, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(b, resp.StatusCode)
 		return fmt.Errorf("failed write azure line comment: %s", string(b))
 	}
 
