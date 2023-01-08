@@ -17,6 +17,10 @@ type commitFileInfo struct {
 	likelyBinary bool
 }
 
+func (cl *chunkLines) Contains(line int) bool {
+	return line >= cl.Start && line <= cl.End
+}
+
 func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
 
 	prFiles, err := ghConnector.getFilesForPr()
@@ -46,8 +50,9 @@ func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
 func (cfi commitFileInfo) calculatePosition(line int) *int {
 	var ch chunkLines
 	for _, lines := range cfi.ChunkLines {
-		if line >= lines.Start && line <= lines.End {
+		if lines.Contains(line) {
 			ch = lines
+			break
 		}
 	}
 	position := line - ch.Start
@@ -59,5 +64,5 @@ func (cfi commitFileInfo) isBinary() bool {
 }
 
 func (cfi commitFileInfo) isResolvable() bool {
-	return cfi.isBinary() //&& cfi.hunkStart != -1 && cfi.hunkEnd != -1
+	return cfi.isBinary()
 }

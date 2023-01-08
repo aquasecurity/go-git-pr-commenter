@@ -7,6 +7,7 @@ import (
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/google/go-github/v44/github"
+	"github.com/samber/lo"
 )
 
 type Github struct {
@@ -86,7 +87,7 @@ func loadPr(ghConnector *connector) ([]*commitFileInfo, []*existingComment, erro
 func getCommitInfo(file *github.CommitFile) (cfi *commitFileInfo, err error) {
 	var isBinary bool
 	patch := file.GetPatch()
-	lines, err := parseHunkPositions(patch, *file.Filename)
+	lines, err := parseChunkPositions(patch, *file.Filename)
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +105,11 @@ func getCommitInfo(file *github.CommitFile) (cfi *commitFileInfo, err error) {
 		likelyBinary: isBinary,
 	}, nil
 }
-func parseHunkPositions(patch, filename string) (lines []chunkLines, err error) {
+func parseChunkPositions(patch, filename string) (lines []chunkLines, err error) {
 	if patch != "" {
 		groups := patchRegex.FindAllStringSubmatch(patch, -1)
 		if len(groups) < 1 {
-			return []chunkLines{{0, 0}}, fmt.Errorf("the patch details for [%s] could not be resolved", filename)
+			return nil, fmt.Errorf("the patch details for [%s] could not be resolved", filename)
 		}
 
 		for _, patchGroup := range groups {
@@ -117,16 +118,16 @@ func parseHunkPositions(patch, filename string) (lines []chunkLines, err error) 
 				endPos = 1
 			}
 
-			hunkStart, err := strconv.Atoi(patchGroup[1])
+			chunkStart, err := strconv.Atoi(patchGroup[1])
 			if err != nil {
-				hunkStart = -1
+				chunkStart = -1
 			}
-			hunkEnd, err := strconv.Atoi(patchGroup[endPos])
+			chunkEnd, err := strconv.Atoi(patchGroup[endPos])
 			if err != nil {
-				hunkEnd = -1
+				chunkEnd = -1
 			}
 
-			lines = append(lines, chunkLines{hunkStart, hunkStart + (hunkEnd - 1)})
+			lines = append(lines, chunkLines{chunkStart, chunkStart + (chunkEnd - 1)})
 		}
 	}
 	return lines, nil
@@ -155,7 +156,7 @@ func checkIfLineInChunk(line int, file *commitFileInfo) bool {
 	}
 
 	for _, lines := range file.ChunkLines {
-		if line >= lines.Start && line <= lines.End {
+		if lines.Contains(line) {
 			return true
 		}
 	}
@@ -175,14 +176,11 @@ func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {
 }
 
 func getFirstChunkLine(file commitFileInfo) int {
-	first := 1000000
-	for _, lines := range file.ChunkLines {
-		if lines.Start < first {
-			first = lines.Start
-		}
+	lines := lo.MinBy(file.ChunkLines, func(lines chunkLines, minLines chunkLines) bool {
+		return lines.Start < minLines.Start
 
-	}
-	return first
+	})
+	return lines.Start
 }
 
 func buildComment(file, comment string, line int, info commitFileInfo) *github.PullRequestComment {
