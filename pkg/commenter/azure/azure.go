@@ -126,6 +126,7 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
+		fmt.Println(resp.Body)
 		b, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("failed write azure line comment: %s", string(b))
 	}
@@ -155,7 +156,6 @@ func (c *Azure) RemovePreviousAquaComments(msg string) error {
 
 	commentsResponse := ThreadsResponse{}
 	err = json.Unmarshal(body, &commentsResponse)
-	fmt.Println(body)
 	if err != nil {
 		return fmt.Errorf("failed unmarshal response body with error: %w", err)
 	}
