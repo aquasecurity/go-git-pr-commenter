@@ -155,12 +155,11 @@ func checkIfLineInChunk(line int, file *commitFileInfo) bool {
 		return true
 	}
 
-	for _, lines := range file.ChunkLines {
-		if lines.Contains(line) {
-			return true
-		}
-	}
-	return false
+	_, found := lo.Find(file.ChunkLines, func(lines chunkLines) bool {
+		return lines.Contains(line)
+	})
+
+	return found
 }
 
 func (c *Github) getFileInfo(file string, line int) (*commitFileInfo, error) {

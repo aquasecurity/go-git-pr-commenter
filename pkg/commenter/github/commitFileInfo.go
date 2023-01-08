@@ -3,6 +3,8 @@ package github
 import (
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 type chunkLines struct {
@@ -48,13 +50,10 @@ func getCommitFileInfo(ghConnector *connector) ([]*commitFileInfo, error) {
 }
 
 func (cfi commitFileInfo) calculatePosition(line int) *int {
-	var ch chunkLines
-	for _, lines := range cfi.ChunkLines {
-		if lines.Contains(line) {
-			ch = lines
-			break
-		}
-	}
+	ch, _ := lo.Find(cfi.ChunkLines, func(lines chunkLines) bool {
+		return lines.Contains(line)
+	})
+
 	position := line - ch.Start
 	return &position
 }
