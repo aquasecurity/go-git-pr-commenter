@@ -225,6 +225,11 @@ func (c *Github) WriteMultiLineComment(file, comment string, startLine, endLine 
 		endLine = 1
 	}
 
+	if endLine < startLine {
+		startLine++
+		endLine = startLine
+	}
+
 	if !c.checkCommentRelevant(file, startLine) || !c.checkCommentRelevant(file, endLine) {
 		return newCommentNotValidError(file, startLine)
 	}
