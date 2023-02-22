@@ -90,7 +90,7 @@ func (c *BitbucketServer) WriteMultiLineComment(file, comment string, startLine,
 }
 
 func (c *BitbucketServer) WriteLineComment(file, comment string, line int) error {
-	if line == commenter.FIRST_AVAILABLE_LINE {
+	if line == commenter.FIRST_AVAILABLE_LINE || line == 0 {
 		line = 1
 	}
 
