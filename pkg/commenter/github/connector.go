@@ -3,9 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/google/go-github/v44/github"
 	"golang.org/x/oauth2"
-	"time"
 )
 
 const githubAbuseErrorRetries = 6
@@ -86,7 +87,7 @@ func writeCommentWithRetries(owner, repo string, prNumber int, commentFn comment
 		time.Sleep(time.Second * time.Duration(retrySeconds))
 
 		if resp, err := commentFn(); err != nil {
-			if resp != nil && resp.StatusCode == 422 {
+			if resp != nil && (resp.StatusCode == 422 || resp.StatusCode == 403) {
 				abuseError = newAbuseRateLimitError(owner, repo, prNumber, retrySeconds)
 				continue
 			}
