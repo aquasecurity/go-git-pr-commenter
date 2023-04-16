@@ -87,6 +87,8 @@ func writeCommentWithRetries(owner, repo string, prNumber int, commentFn comment
 		time.Sleep(time.Second * time.Duration(retrySeconds))
 
 		if resp, err := commentFn(); err != nil {
+			// If we get a 403 or 422, we are being rate or abuse limited by GitHub,
+			// and we want to retry, while increasing the wait time between retries.
 			if resp != nil && (resp.StatusCode == 422 || resp.StatusCode == 403) {
 				abuseError = newAbuseRateLimitError(owner, repo, prNumber, retrySeconds)
 				continue
