@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils"
+	"github.com/samber/lo"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 )
@@ -48,6 +49,8 @@ type Gitlab struct {
 	Repo     string
 	PrNumber string
 }
+
+var lockFiles = []string{"package.json", "yarn.lock"}
 
 func NewGitlab(token string) (b *Gitlab, err error) {
 	return &Gitlab{
@@ -85,6 +88,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		"position[head_sha]":      {version.HeadCommitSha},
 		"position[start_sha]":     {version.StartCommitSha},
 		"position[new_path]":      {file},
+		"position[old_path]":      {file},
 		"position[new_line]":      {strconv.Itoa(line)},
 		"body":                    {comment},
 	}
@@ -108,7 +112,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		fmt.Printf("failed to write comment to file: %s, trying again", file)
+		fmt.Printf("failed to write comment to file: %s, trying again... \n", file)
 		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
 			c.ApiURL, c.Repo, c.PrNumber),
@@ -123,6 +127,17 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 			return err
 		}
 		if resp.StatusCode != http.StatusCreated {
+			if lo.ContainsBy(lockFiles, func(lf string) bool {
+				return strings.Contains(string(file), lf)
+			}) {
+				resp, err := c.writeGeneralPrComment(file, comment)
+				if err != nil {
+					return err
+				} else if resp.StatusCode == http.StatusCreated {
+					fmt.Println("comment created successfully")
+					return nil
+				}
+			}
 			b, _ := ioutil.ReadAll(resp.Body)
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
@@ -131,6 +146,27 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	}
 
 	return nil
+}
+
+func (c *Gitlab) writeGeneralPrComment(file, comment string) (*http.Response, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/notes",
+		c.ApiURL, c.Repo, c.PrNumber),
+		strings.NewReader(url.Values{"body": {expendComment(comment, file)}}.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("PRIVATE-TOKEN", c.Token)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func expendComment(comment, file string) string {
+	return fmt.Sprintf("%s\n\n %s\n %s", "_The comment could not be added to the file because the size of the source diff is too large._", fmt.Sprintf("**File Path:** `%s`", file), comment)
 }
 
 func (c *Gitlab) getLatestVersion() (v Version, err error) {
