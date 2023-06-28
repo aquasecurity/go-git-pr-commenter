@@ -141,9 +141,8 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 			b, _ := ioutil.ReadAll(resp.Body)
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
+		fmt.Println("comment created successfully")
 	}
-
-	fmt.Println("comment created successfully")
 
 	return nil
 }
