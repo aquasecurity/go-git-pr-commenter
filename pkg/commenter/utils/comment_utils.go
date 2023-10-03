@@ -66,7 +66,7 @@ func GetRepositoryCloneURL() (string, error) {
 func getGitRemoteURL() (string, error) {
 	repositoryPath, ok := os.LookupEnv("WORKSPACE")
 	if !ok {
-		return "", errors.New("colud not find remote url, no WORKSPACE env var")
+		return "", errors.New("could not find remote url, no WORKSPACE env var")
 	}
 	remotes, err := getGitRemotes(repositoryPath)
 	if err != nil {
