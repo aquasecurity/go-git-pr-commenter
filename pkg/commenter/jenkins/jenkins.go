@@ -2,14 +2,14 @@ package jenkins
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/argonsecurity/go-environments/enums"
 	"github.com/argonsecurity/go-environments/environments/jenkins"
 	env_utils "github.com/argonsecurity/go-environments/environments/utils"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
@@ -37,11 +37,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		} else { // bitbucket server
 			repoName := bitbucketutils.GetRepositoryName(cloneUrl)
 			project, repo := bitbucketutils.GetProjectAndRepo(repoName)
-			apiUrl, err := getBaseUrl(cloneUrl)
-			if err != nil {
-				return nil, err
-			}
-			return bitbucket_server.NewBitbucketServer(apiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
+			return bitbucket_server.NewBitbucketServer(scmApiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
@@ -66,23 +62,9 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 				repoName,
 				prNumberInt)
 		} else { //github server
-			apiUrl, err := getBaseUrl(cloneUrl)
-			if err != nil {
-				return nil, err
-			}
-			return github.NewGithubServer(apiUrl, token, org, repoName, prNumberInt)
+			return github.NewGithubServer(scmApiUrl, token, org, repoName, prNumberInt)
 		}
 
 	}
-
 	return nil, nil
-}
-
-func getBaseUrl(fullUrl string) (string, error) {
-	u, err := url.Parse(fullUrl)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse url %s - %s", fullUrl, err.Error())
-	}
-
-	return fmt.Sprintf("%s://%s", u.Scheme, u.Host), nil
 }
