@@ -37,7 +37,8 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		} else { // bitbucket server
 			repoName := bitbucketutils.GetRepositoryName(cloneUrl)
 			project, repo := bitbucketutils.GetProjectAndRepo(repoName)
-			return bitbucket_server.NewBitbucketServer(scmApiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
+			sanitizedApiUrl := env_utils.StripCredentialsFromUrl(scmApiUrl)
+			return bitbucket_server.NewBitbucketServer(sanitizedApiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
@@ -62,7 +63,8 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 				repoName,
 				prNumberInt)
 		} else { //github server
-			return github.NewGithubServer(scmApiUrl, token, org, repoName, prNumberInt)
+			sanitizedApiUrl := env_utils.StripCredentialsFromUrl(scmApiUrl)
+			return github.NewGithubServer(sanitizedApiUrl, token, org, repoName, prNumberInt)
 		}
 
 	}
