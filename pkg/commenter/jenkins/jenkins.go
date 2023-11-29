@@ -20,7 +20,8 @@ import (
 
 func NewJenkins(baseRef string) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL()
-	scmSource, scmApiUrl := jenkins.GetRepositorySource(cloneUrl)
+	sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
+	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl)
 
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
@@ -37,8 +38,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		} else { // bitbucket server
 			repoName := bitbucketutils.GetRepositoryName(cloneUrl)
 			project, repo := bitbucketutils.GetProjectAndRepo(repoName)
-			sanitizedApiUrl := env_utils.StripCredentialsFromUrl(scmApiUrl)
-			return bitbucket_server.NewBitbucketServer(sanitizedApiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
+			return bitbucket_server.NewBitbucketServer(scmApiUrl, username, password, bitbucketutils.GetPrId(), project, repo, baseRef)
 		}
 	} else if scmSource == enums.GithubServer || scmSource == enums.Github {
 		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
@@ -63,8 +63,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 				repoName,
 				prNumberInt)
 		} else { //github server
-			sanitizedApiUrl := env_utils.StripCredentialsFromUrl(scmApiUrl)
-			return github.NewGithubServer(sanitizedApiUrl, token, org, repoName, prNumberInt)
+			return github.NewGithubServer(scmApiUrl, token, org, repoName, prNumberInt)
 		}
 
 	}
