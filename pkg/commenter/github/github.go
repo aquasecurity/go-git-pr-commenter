@@ -218,7 +218,7 @@ func (c *Github) writeCommentIfRequired(prComment *github.PullRequestComment) er
 
 // WriteMultiLineComment writes a multiline review on a file in the github PR
 func (c *Github) WriteMultiLineComment(file, comment string, startLine, endLine int) error {
-	if startLine == 0 || startLine == commenter.FIRST_AVAILABLE_LINE {
+	if startLine == 0 {
 		startLine = 1
 	}
 	if endLine == 0 {
