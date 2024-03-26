@@ -73,12 +73,14 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		file = fmt.Sprintf("/%s", file)
 	}
 
-	if startLine == commenter.FIRST_AVAILABLE_LINE {
-		startLine = 0
+	if startLine == commenter.FIRST_AVAILABLE_LINE || startLine == 0 {
+		// Reference: https://developercommunity.visualstudio.com/t/Adding-thread-to-PR-using-REST-API-cause/10598424
+		startLine = 1
 	}
 
-	if endLine == commenter.FIRST_AVAILABLE_LINE {
-		endLine = 0
+	if endLine == commenter.FIRST_AVAILABLE_LINE || endLine == 0 {
+		// Reference: https://developercommunity.visualstudio.com/t/Adding-thread-to-PR-using-REST-API-cause/10598424
+		endLine = 1
 	}
 
 	b := Body{
