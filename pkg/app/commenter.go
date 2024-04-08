@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/azure"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
@@ -9,7 +11,6 @@ import (
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/mock"
 	"github.com/urfave/cli/v2"
-	"os"
 )
 
 func Action(ctx *cli.Context) (err error) {
@@ -34,7 +35,7 @@ func Action(ctx *cli.Context) (err error) {
 		c = commenter.Repository(r)
 	case "azure":
 		token := os.Getenv("AZURE_TOKEN")
-		r, err := azure.NewAzure(token)
+		r, err := azure.NewAzure(token, ctx.String("project"), ctx.String("collection-url"), ctx.String("repo-id"), ctx.String("pr-number"))
 		if err != nil {
 			return err
 		}
