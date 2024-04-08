@@ -49,9 +49,20 @@ func NewApp() *cli.App {
 					Name:  "owner",
 					Usage: "The repo owner",
 				},
+				&cli.StringFlag{
+					Name:  "project",
+					Usage: "The project name (azure)",
+				},
+				&cli.StringFlag{
+					Name:  "collection-url",
+					Usage: "The collection url (azure)",
+				},
+				&cli.StringFlag{
+					Name:  "repo-id",
+					Usage: "The repository ID (azure)",
+				},
 			},
 		},
 	}
-
 	return app
 }
