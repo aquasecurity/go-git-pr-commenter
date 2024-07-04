@@ -1,9 +1,11 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/google/go-github/v44/github"
@@ -260,6 +262,15 @@ func (c *Github) WriteLineComment(file, comment string, line int) error {
 	return c.writeCommentIfRequired(prComment)
 }
 
-func (c *Github) RemovePreviousAquaComments(_ string) error {
+func (c *Github) RemovePreviousAquaComments(msg string) error {
+	ctx := context.Background()
+	for _, existing := range c.existingComments {
+		if strings.Contains(*existing.comment, msg) {
+			if _, err := c.ghConnector.prs.DeleteComment(ctx, c.Owner, c.Repo, *existing.commentId); err != nil {
+				return err
+			}
+		}
+	}
+	c.existingComments = nil
 	return nil
 }
