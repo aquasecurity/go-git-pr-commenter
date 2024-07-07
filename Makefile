@@ -5,7 +5,7 @@ release:
 	@./scripts/release.sh
 .PHONY: test
 test:
-	go test -v ./...
+	GOPRIVATE=github.com/argonsecurity/* go test -v ./...
 
 .PHONY: build
 build:
