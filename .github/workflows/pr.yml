@@ -21,7 +21,7 @@ jobs:
 
       - name: Configure git url
         run: |
-          git config --global url.https://${{ secrets.TRIVY_PLUGIN_RELEASE_TOKEN }}@github.com/.insteadOf https://github.com/
+          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
 
       - name: Run tests
         env:
