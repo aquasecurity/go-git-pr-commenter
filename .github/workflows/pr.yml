@@ -19,5 +19,11 @@ jobs:
           go-version: '1.18'
       - run: go version
 
+      - name: Configure git url
+        run: |
+          git config --global url.https://${{ secrets.TRIVY_PLUGIN_RELEASE_TOKEN }}@github.com/.insteadOf https://github.com/
+
       - name: Run tests
+        env:
+          GOPRIVATE: github.com/argonsecurity/*
         run: make test
