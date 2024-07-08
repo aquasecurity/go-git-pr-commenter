@@ -17,7 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Configure git url
+        run: |
+          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
+        env:
+          GOPRIVATE: github.com/argonsecurity/*
         with:
           args: --timeout=5m
+        
+      - name: Remove git url
+        run: |
+          git config --global url.https://github.com/.insteadOf https://${{ secrets.ARGON_GH_TOKEN }}@github.com/

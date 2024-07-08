@@ -15,9 +15,17 @@ jobs:
 
       - uses: actions/setup-go@v3
         with:
-          stable: 'false'
-          go-version: '1.18'
+          stable: "false"
+          go-version: "1.18"
       - run: go version
 
+      - name: Configure git url
+        run: |
+          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
       - name: Run tests
+        env:
+          GOPRIVATE: github.com/argonsecurity/*
         run: make test
+      - name: Remove git url
+        run: |
+          git config --global url.https://github.com/.insteadOf https://${{ secrets.ARGON_GH_TOKEN }}@github.com/
