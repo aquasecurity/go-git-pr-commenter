@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
+	"github.com/rs/zerolog/log"
+
 	"github.com/argonsecurity/go-environments/enums"
 	"github.com/argonsecurity/go-environments/environments/jenkins"
 	env_utils "github.com/argonsecurity/go-environments/environments/utils"
@@ -66,6 +69,46 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			return github.NewGithubServer(scmApiUrl, token, org, repoName, prNumberInt)
 		}
 
+	} else if scmSource == enums.GitlabServer || scmSource == enums.Gitlab {
+		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing url with error: %s", err.Error())
+		}
+		token := os.Getenv("GITLAB_TOKEN")
+		prNumber := os.Getenv("gitlabMergeRequestIid")
+		gitURL := os.Getenv("GIT_URL")
+		if gitURL == "" {
+			return nil, fmt.Errorf("GIT_URL env var is not set")
+		}
+		apiUrl := getGitLabAPIURL(gitURL)
+		log.Info().Msgf("apiUrl before: %s", gitURL)
+		log.Info().Msgf("apiUrl: %s", apiUrl)
+		log.Info().Msgf("org: %s", org)
+		log.Info().Msgf("repoName: %s", repoName)
+		log.Info().Msgf("prNumber: %s", prNumber)
+
+		return gitlab.NewGitlab(token, apiUrl, fmt.Sprintf("%s/%s", org, repoName), prNumber)
 	}
+
 	return nil, nil
+}
+
+func getGitLabAPIURL(gitURL string) string {
+	// Find the protocol (http:// or https://) position and slice it off
+	protocolEnd := strings.Index(gitURL, "//") + 2
+	if protocolEnd == 1 {
+		return ""
+	}
+
+	// Find the position of the first '/' after the domain
+	domainEnd := strings.Index(gitURL[protocolEnd:], "/") + protocolEnd
+	if domainEnd == -1 {
+		return ""
+	}
+
+	// Extract the base URL (protocol + domain)
+	baseURL := gitURL[:domainEnd]
+
+	// Append the GitLab API path
+	return baseURL + "/api/v4"
 }
