@@ -52,12 +52,12 @@ type Gitlab struct {
 
 var lockFiles = []string{"package.json", "yarn.lock"}
 
-func NewGitlab(token string) (b *Gitlab, err error) {
+func NewGitlab(token, apiUrl, repoName, mergeRequestID string) (b *Gitlab, err error) {
 	return &Gitlab{
-		ApiURL:   os.Getenv("CI_API_V4_URL"),
+		ApiURL:   lo.Ternary(apiUrl == "", os.Getenv("CI_API_V4_URL"), apiUrl),
 		Token:    token,
-		Repo:     os.Getenv("CI_PROJECT_ID"),
-		PrNumber: os.Getenv("CI_MERGE_REQUEST_IID"),
+		Repo:     lo.Ternary(repoName == "", os.Getenv("CI_PROJECT_ID"), repoName),
+		PrNumber: lo.Ternary(mergeRequestID == "", os.Getenv("CI_MERGE_REQUEST_IID"), mergeRequestID),
 	}, nil
 }
 
