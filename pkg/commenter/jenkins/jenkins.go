@@ -75,7 +75,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			return nil, fmt.Errorf("failed parsing url with error: %s", err.Error())
 		}
 		token := os.Getenv("GITLAB_TOKEN")
-		prNumber := os.Getenv("gitlabMergeRequestIid")
+		prNumber := os.Getenv("CHANGE_ID")
 		gitURL := os.Getenv("GIT_URL")
 		if gitURL == "" {
 			return nil, fmt.Errorf("GIT_URL env var is not set")
