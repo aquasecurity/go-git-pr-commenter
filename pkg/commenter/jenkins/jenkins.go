@@ -2,6 +2,7 @@ package jenkins
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -87,7 +88,7 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		log.Info().Msgf("repoName: %s", repoName)
 		log.Info().Msgf("prNumber: %s", prNumber)
 
-		return gitlab.NewGitlab(token, apiUrl, fmt.Sprintf("%s/%s", org, repoName), prNumber)
+		return gitlab.NewGitlab(token, apiUrl, url.PathEscape(fmt.Sprintf("%s/%s", org, repoName)), prNumber)
 	}
 
 	return nil, nil
