@@ -79,6 +79,5 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 
 		return gitlab.NewGitlab(token, scmApiUrl, url.PathEscape(fmt.Sprintf("%s/%s", org, repoName)), prNumber)
 	}
-
 	return nil, nil
 }
