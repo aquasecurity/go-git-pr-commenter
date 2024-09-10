@@ -84,11 +84,12 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 		apiUrl := getGitLabAPIURL(gitURL)
 		log.Info().Msgf("apiUrl before: %s", gitURL)
 		log.Info().Msgf("apiUrl: %s", apiUrl)
+		log.Info().Msgf("scmApiUrl: %s", scmApiUrl)
 		log.Info().Msgf("org: %s", org)
 		log.Info().Msgf("repoName: %s", repoName)
 		log.Info().Msgf("prNumber: %s", prNumber)
 
-		return gitlab.NewGitlab(token, apiUrl, url.PathEscape(fmt.Sprintf("%s/%s", org, repoName)), prNumber)
+		return gitlab.NewGitlab(token, scmApiUrl, url.PathEscape(fmt.Sprintf("%s/%s", org, repoName)), prNumber)
 	}
 
 	return nil, nil
