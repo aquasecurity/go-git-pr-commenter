@@ -28,7 +28,7 @@ func Action(ctx *cli.Context) (err error) {
 	case "gitlab":
 		token := os.Getenv("GITLAB_TOKEN")
 		r, err := gitlab.NewGitlab(
-			token)
+			token, "", "", "")
 		if err != nil {
 			return err
 		}
