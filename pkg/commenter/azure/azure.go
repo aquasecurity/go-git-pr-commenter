@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -141,7 +140,7 @@ func (c *Azure) WriteMultiLineComment(file, comment string, startLine, endLine i
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed write azure line comment: %s", string(b))
 	}
 

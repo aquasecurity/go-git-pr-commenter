@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -138,7 +137,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 					return nil
 				}
 			}
-			b, _ := ioutil.ReadAll(resp.Body)
+			b, _ := io.ReadAll(resp.Body)
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
 
@@ -184,7 +183,7 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		return v, fmt.Errorf("failed get gitlab PR version: %s", string(b))
 	}
 	defer func() { _ = resp.Body.Close() }()
