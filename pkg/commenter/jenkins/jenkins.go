@@ -2,11 +2,14 @@ package jenkins
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
+	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
+
 	"github.com/argonsecurity/go-environments/enums"
 	"github.com/argonsecurity/go-environments/environments/jenkins"
 	env_utils "github.com/argonsecurity/go-environments/environments/utils"
@@ -66,6 +69,15 @@ func NewJenkins(baseRef string) (commenter.Repository, error) {
 			return github.NewGithubServer(scmApiUrl, token, org, repoName, prNumberInt)
 		}
 
+	} else if scmSource == enums.GitlabServer || scmSource == enums.Gitlab {
+		_, org, repoName, _, err := env_utils.ParseDataFromCloneUrl(cloneUrl, scmApiUrl, scmSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing url with error: %s", err.Error())
+		}
+		token := os.Getenv("GITLAB_TOKEN")
+		prNumber := os.Getenv("CHANGE_ID")
+
+		return gitlab.NewGitlab(token, scmApiUrl, url.PathEscape(fmt.Sprintf("%s/%s", org, repoName)), prNumber)
 	}
 	return nil, nil
 }

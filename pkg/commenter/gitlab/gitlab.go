@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,12 +51,12 @@ type Gitlab struct {
 
 var lockFiles = []string{"package.json", "yarn.lock"}
 
-func NewGitlab(token string) (b *Gitlab, err error) {
+func NewGitlab(token, apiUrl, repoName, mergeRequestID string) (b *Gitlab, err error) {
 	return &Gitlab{
-		ApiURL:   os.Getenv("CI_API_V4_URL"),
+		ApiURL:   lo.Ternary(apiUrl == "", os.Getenv("CI_API_V4_URL"), apiUrl),
 		Token:    token,
-		Repo:     os.Getenv("CI_PROJECT_ID"),
-		PrNumber: os.Getenv("CI_MERGE_REQUEST_IID"),
+		Repo:     lo.Ternary(repoName == "", os.Getenv("CI_PROJECT_ID"), repoName),
+		PrNumber: lo.Ternary(mergeRequestID == "", os.Getenv("CI_MERGE_REQUEST_IID"), mergeRequestID),
 	}, nil
 }
 
@@ -138,7 +137,7 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 					return nil
 				}
 			}
-			b, _ := ioutil.ReadAll(resp.Body)
+			b, _ := io.ReadAll(resp.Body)
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
 
@@ -184,7 +183,7 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		return v, fmt.Errorf("failed get gitlab PR version: %s", string(b))
 	}
 	defer func() { _ = resp.Body.Close() }()

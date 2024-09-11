@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -115,7 +114,7 @@ func (c *Bitbucket) WriteLineComment(file, comment string, line int) error {
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed write bitbucket line comment: %s", string(b))
 	}
 
