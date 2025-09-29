@@ -10,9 +10,9 @@ import (
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
 
-	"github.com/argonsecurity/go-environments/enums"
-	"github.com/argonsecurity/go-environments/environments/jenkins"
-	env_utils "github.com/argonsecurity/go-environments/environments/utils"
+	"github.com/aquasec-com/go-environments/enums"
+	"github.com/aquasec-com/go-environments/environments/jenkins"
+	env_utils "github.com/aquasec-com/go-environments/environments/utils"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
@@ -21,12 +21,11 @@ import (
 	bitbucketutils "github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils/bitbucket"
 )
 
-func NewJenkins(baseRef, scmApiUrl string, scmSource enums.Source) (commenter.Repository, error) {
-	cloneUrl, _ := utils.GetRepositoryCloneURL() // https://bitbucket/scm/prdadm/proadm-product-ui-lib-v01.git
-	if scmApiUrl == "" || scmSource == "" {
-		sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
-		scmSource, scmApiUrl = jenkins.GetRepositorySource(sanitizedCloneUrl)
-	}
+func NewJenkins(baseRef string, scmSource enums.Source) (commenter.Repository, error) {
+	cloneUrl, _ := utils.GetRepositoryCloneURL()
+	sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
+	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl, scmSource)
+
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
 		if !ok {
