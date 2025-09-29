@@ -21,8 +21,8 @@ import (
 	bitbucketutils "github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils/bitbucket"
 )
 
-func NewJenkins(baseRef string) (commenter.Repository, error) {
-	cloneUrl, _ := utils.GetRepositoryCloneURL()
+func NewJenkins(baseRef, source string) (commenter.Repository, error) {
+	cloneUrl, _ := utils.GetRepositoryCloneURL() // https://bitbucket/scm/prdadm/proadm-product-ui-lib-v01.git
 	sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
 	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl)
 
