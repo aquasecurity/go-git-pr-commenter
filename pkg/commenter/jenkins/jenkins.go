@@ -21,10 +21,10 @@ import (
 	bitbucketutils "github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/utils/bitbucket"
 )
 
-func NewJenkins(baseRef, source string) (commenter.Repository, error) {
+func NewJenkins(baseRef, source, apiUrl string) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL() // https://bitbucket/scm/prdadm/proadm-product-ui-lib-v01.git
 	sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
-	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl)
+	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl, source)
 
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
