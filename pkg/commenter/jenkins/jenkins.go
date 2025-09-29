@@ -23,7 +23,10 @@ import (
 
 func NewJenkins(baseRef, scmApiUrl string, scmSource enums.Source) (commenter.Repository, error) {
 	cloneUrl, _ := utils.GetRepositoryCloneURL() // https://bitbucket/scm/prdadm/proadm-product-ui-lib-v01.git
-
+	if scmApiUrl == "" || scmSource == "" {
+		sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
+		scmSource, scmApiUrl = jenkins.GetRepositorySource(sanitizedCloneUrl)
+	}
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
 		if !ok {
