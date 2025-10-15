@@ -10,9 +10,9 @@ import (
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/github"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/gitlab"
 
-	"github.com/argonsecurity/go-environments/enums"
-	"github.com/argonsecurity/go-environments/environments/jenkins"
-	env_utils "github.com/argonsecurity/go-environments/environments/utils"
+	"github.com/aquasec-com/go-environments/enums"
+	"github.com/aquasec-com/go-environments/environments/jenkins"
+	env_utils "github.com/aquasec-com/go-environments/environments/utils"
 
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter"
 	"github.com/aquasecurity/go-git-pr-commenter/pkg/commenter/bitbucket"
