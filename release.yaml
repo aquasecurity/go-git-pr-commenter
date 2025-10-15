@@ -1,26 +1,26 @@
 name: "commenter"
 repository: github.com/aquasecurity/go-git-pr-commenter
-version: "v0.8.9"
+version: "v0.12.0"
 usage: commenter cmd
 description: commenter adding comments to git PRs
 platforms:
   - selector: # optional
       os: linux
       arch: amd64
-    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.8.9/linux_amd64_v0.8.9.tar.gz
+    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.12.0/linux_amd64_v0.12.0.tar.gz
     bin: ./commenter
   - selector:
       os: linux
       arch: arm64
-    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.8.9/linux_arm64_v0.8.9.tar.gz
+    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.12.0/linux_arm64_v0.12.0.tar.gz
     bin: ./commenter
   - selector:
       os: darwin
       arch: amd64
-    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.8.9/darwin_amd64_v0.8.9.tar.gz
+    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.12.0/darwin_amd64_v0.12.0.tar.gz
     bin: ./commenter
   - selector:
       os: darwin
       arch: arm64
-    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.8.9/darwin_arm64_v0.8.9.tar.gz
+    uri: https://github.com/aquasecurity/go-git-pr-commenter/releases/download/v0.12.0/darwin_arm64_v0.12.0.tar.gz
     bin: ./commenter
