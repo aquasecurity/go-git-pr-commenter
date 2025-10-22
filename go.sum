@@ -1,5 +1,5 @@
-github.com/aquasec-com/go-environments v0.1.81 h1:6UhOrO2b8Efq5OqJLlmzQyw/12BJL/o+aj01fUx8KKk=
-github.com/aquasec-com/go-environments v0.1.81/go.mod h1:WDGzK90P3LJhecAn1jg3bAfc2S805yHVhCB8Wd+G8NI=
+github.com/aquasec-com/go-environments v0.1.82 h1:9HwvvrHqNc5Fyp/+qc4dsdyChmma9dz0Ucn7ApU6Pfw=
+github.com/aquasec-com/go-environments v0.1.82/go.mod h1:WDGzK90P3LJhecAn1jg3bAfc2S805yHVhCB8Wd+G8NI=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/cpuguy83/go-md2man/v2 v2.0.1 h1:r/myEWzV9lfsM1tFLgDyu0atFtJ1fXn261LKYj/3DxU=
 github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
