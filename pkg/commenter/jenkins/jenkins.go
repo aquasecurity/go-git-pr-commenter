@@ -22,10 +22,13 @@ import (
 )
 
 func NewJenkins(baseRef string) (commenter.Repository, error) {
+	fmt.Println("23/10 - NewJenkins")
 	cloneUrl, _ := utils.GetRepositoryCloneURL()
+	fmt.Println("23/10 - cloneUrl: ", cloneUrl)
 	sanitizedCloneUrl := env_utils.StripCredentialsFromUrl(cloneUrl)
 	scmSource, scmApiUrl := jenkins.GetRepositorySource(sanitizedCloneUrl)
-
+	fmt.Println("23/10 - scmSource: ", scmSource)
+	fmt.Println("23/10 - scmApiUrl: ", scmApiUrl)
 	if _, exists := bitbucketutils.GetBitbucketPayload(); strings.Contains(cloneUrl, "bitbucket") || exists {
 		username, ok := os.LookupEnv("USERNAME")
 		if !ok {
