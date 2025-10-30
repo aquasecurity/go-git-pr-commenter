@@ -3,7 +3,7 @@ module github.com/aquasecurity/go-git-pr-commenter
 go 1.18
 
 require (
-	github.com/aquasec-com/go-environments v0.1.83-0.20251023071241-59ad74c4855e
+	github.com/aquasec-com/go-environments v0.1.83-0.20251030130917-0ad7af5fc4df
 	github.com/google/go-github/v44 v44.1.0
 	github.com/samber/lo v1.52.0
 	github.com/urfave/cli/v2 v2.8.1
