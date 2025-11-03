@@ -35,6 +35,7 @@ func createConnector(apiUrl, token, owner, repo string, prNumber int, isEnterpri
 		return nil, err
 	}
 	if _, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber); err != nil {
+		fmt.Println("error getting pr", err)
 		return nil, newPrDoesNotExistError(owner, repo, prNumber)
 	}
 
