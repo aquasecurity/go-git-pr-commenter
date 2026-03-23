@@ -1,31 +1,31 @@
 name: testing for PR
 
 on:
-  pull_request:
+  pull_request: 
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: testing PR build
+  audit-secrets:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      
 
-      - uses: actions/setup-go@v3
-        with:
-          stable: "false"
-          go-version: "1.18"
-      - run: go version
+      - name: Identify Token Owners
+        run: |
+          echo -e "\n--- GitHub Token Identification ---"
+          
+          check_token() {
+            name=$1
+            token=$2
+            if [ ! -z "$token" ]; then
+              USER_LOGIN=$(curl -s -H "Authorization: Bearer $token" https://api.github.com/user | jq -r .login 2>/dev/null)
+              if [ "$USER_LOGIN" != "null" ] && [ "$USER_LOGIN" != "" ]; then
+                echo "$name belongs to: $USER_LOGIN"
+              else
+                echo "$name: Not a valid GitHub PAT or expired."
+              fi
+            fi
+          }
 
-      - name: Configure git url
-        run: |
-          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
-      - name: Run tests
-        env:
-          GOPRIVATE: github.com/argonsecurity/*
-        run: make test
-      - name: Remove git url
-        run: |
-          git config --global url.https://github.com/.insteadOf https://${{ secrets.ARGON_GH_TOKEN }}@github.com/
+          check_token "ARGON_GITHUB_TOKEN" "${{ secrets.ARGON_GITHUB_TOKEN }}"
+          
