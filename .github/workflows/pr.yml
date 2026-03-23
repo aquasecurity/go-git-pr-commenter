@@ -27,5 +27,5 @@ jobs:
             fi
           }
 
-          check_token "ARGON_GITHUB_TOKEN" "${{ secrets.ARGON_GITHUB_TOKEN }}"
+          check_token "ARGON_GITHUB_TOKEN" "${{ secrets.ARGON_GH_TOKEN }}"
           
