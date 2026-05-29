@@ -233,7 +233,7 @@ func (c *Gitlab) getIdsToRemove(idsToRemove []DiscussionNote, msg, page string) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var discussionsResponse []Discussion
 	err = json.Unmarshal(body, &discussionsResponse)
