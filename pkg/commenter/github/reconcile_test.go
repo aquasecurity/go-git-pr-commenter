@@ -33,11 +33,11 @@ type gqlThreadFixture struct {
 // GraphQL API would return.
 func renderGraphQLResponse(threads []gqlThreadFixture) string {
 	type cmt struct {
-		DatabaseID int64   `json:"databaseId"`
-		Body       string  `json:"body"`
-		Path       string  `json:"path"`
-		Line       *int    `json:"line"`
-		StartLine  *int    `json:"startLine"`
+		DatabaseID int64  `json:"databaseId"`
+		Body       string `json:"body"`
+		Path       string `json:"path"`
+		Line       *int   `json:"line"`
+		StartLine  *int   `json:"startLine"`
 	}
 	type thd struct {
 		ID         string `json:"id"`
@@ -80,7 +80,9 @@ func renderGraphQLResponse(threads []gqlThreadFixture) string {
 				Path:       t.path,
 				Line:       &line,
 				StartLine:  &line,
-				Comments:   struct{ Nodes []cmt `json:"nodes"` }{Nodes: nodes},
+				Comments: struct {
+					Nodes []cmt `json:"nodes"`
+				}{Nodes: nodes},
 			},
 		)
 	}
@@ -96,7 +98,8 @@ func newTestGithub(t *testing.T, threads []gqlThreadFixture, commitFiles []*comm
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&counts.graphql, 1)
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, renderGraphQLResponse(threads))
+		body := renderGraphQLResponse(threads)
+		_, _ = w.Write([]byte(body))
 	})
 	// PATCH/DELETE on a single review comment.
 	mux.HandleFunc("/repos/owner/repo/pulls/comments/", func(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +107,7 @@ func newTestGithub(t *testing.T, threads []gqlThreadFixture, commitFiles []*comm
 		case http.MethodPatch:
 			atomic.AddInt32(&counts.edit, 1)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"id":1}`)
+			_, _ = w.Write([]byte(`{"id":1}`))
 		case http.MethodDelete:
 			atomic.AddInt32(&counts.delete, 1)
 			w.WriteHeader(http.StatusNoContent)
@@ -117,7 +120,7 @@ func newTestGithub(t *testing.T, threads []gqlThreadFixture, commitFiles []*comm
 		if r.Method == http.MethodPost {
 			atomic.AddInt32(&counts.create, 1)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"id":999}`)
+			_, _ = w.Write([]byte(`{"id":999}`))
 			return
 		}
 		t.Errorf("unexpected method %s on %s", r.Method, r.URL.Path)

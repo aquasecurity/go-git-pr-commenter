@@ -152,7 +152,7 @@ func (c *BitbucketServer) getIdsToRemove(commentsToRemove []Comment, msg string,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	activitiesResponse := ActivitiesResponse{}
 	err = json.Unmarshal(body, &activitiesResponse)
