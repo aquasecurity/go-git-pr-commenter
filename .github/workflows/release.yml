@@ -11,15 +11,22 @@ jobs:
     runs-on: arc-runner-set
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
           stable: 'false'
           go-version: '1.18'
       - run: go version
+
+      - name: Configure git url
+        run: |
+          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf https://github.com/argonsecurity/
+          git config --global url.https://${{ secrets.AQUASEC_COM_GH_TOKEN }}@github.com/aquasec-com/.insteadOf https://github.com/aquasec-com/
 
       - name: Release
         uses: goreleaser/goreleaser-action@v3
@@ -28,3 +35,10 @@ jobs:
           args: release --clean # Changed from --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOPRIVATE: github.com/argonsecurity/*, github.com/aquasec-com/*
+
+      - name: Remove git url
+        if: always()
+        run: |
+          git config --global --unset url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf
+          git config --global --unset url.https://${{ secrets.AQUASEC_COM_GH_TOKEN }}@github.com/aquasec-com/.insteadOf
