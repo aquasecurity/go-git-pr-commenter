@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: releasing go-git-pr-commenter
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
 
     steps:
       - uses: actions/checkout@v3

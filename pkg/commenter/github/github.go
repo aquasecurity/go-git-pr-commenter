@@ -20,6 +20,9 @@ type Github struct {
 	Owner            string
 	Repo             string
 	PrNumber         int
+
+	// GraphQLEndpoint is overridable for tests / future GHE support.
+	GraphQLEndpoint string
 }
 
 var (

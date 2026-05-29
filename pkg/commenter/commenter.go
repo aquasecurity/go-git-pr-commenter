@@ -10,3 +10,20 @@ type Repository interface {
 }
 
 var FIRST_AVAILABLE_LINE = -1
+
+// Finding is one logical scanner result. Body must already contain both the
+// Aqua marker and the fingerprint sentinel (see EmbedFingerprint), so that
+// reconciliation can identify and match it across runs.
+type Finding struct {
+	Path        string
+	StartLine   int
+	EndLine     int
+	Body        string
+	Fingerprint string
+}
+
+// Reconciler is an optional capability detected via type assertion; providers
+// that don't implement it fall back to the legacy delete-all + repost path.
+type Reconciler interface {
+	ReconcileAquaComments(marker string, current []Finding) error
+}

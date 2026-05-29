@@ -6,26 +6,36 @@ on:
 jobs:
   build:
     name: testing PR build
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
           stable: "false"
           go-version: "1.18"
-      - run: go version
+
+      - name: Go version check
+        run: go version
 
       - name: Configure git url
         run: |
-          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/.insteadOf https://github.com/
+          git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf https://github.com/argonsecurity/
+          git config --global url.https://${{ secrets.AQUASEC_COM_GH_TOKEN }}@github.com/aquasec-com/.insteadOf https://github.com/aquasec-com/
+
       - name: Run tests
         env:
-          GOPRIVATE: github.com/argonsecurity/*
-        run: make test
+          GOPRIVATE: github.com/argonsecurity/*, github.com/aquasec-com/*
+          CGO_ENABLED: 0  # Disables CGO to bypass the requirement for gcc
+        run: go test -v ./...
+
       - name: Remove git url
+        if: always()
         run: |
-          git config --global url.https://github.com/.insteadOf https://${{ secrets.ARGON_GH_TOKEN }}@github.com/
+          git config --global --unset url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf
+          git config --global --unset url.https://${{ secrets.AQUASEC_COM_GH_TOKEN }}@github.com/aquasec-com/.insteadOf
