@@ -23,7 +23,7 @@ jobs:
       - name: Configure git url
         run: |
           git config --global url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf https://github.com/argonsecurity/
-          git config --global url.https://${{ secrets.AQUASEC_GH_TOKEN }}@github.com/aquasec-com/.insteadOf https://github.com/aquasec-com/
+          git config --global url.https://${{ secrets.AQUA_SEC_GH_TOKEN }}@github.com/aquasec-com/.insteadOf https://github.com/aquasec-com/
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         env:
@@ -34,4 +34,4 @@ jobs:
         if: always()
         run: |
           git config --global --unset url.https://${{ secrets.ARGON_GH_TOKEN }}@github.com/argonsecurity/.insteadOf
-          git config --global --unset url.https://${{ secrets.AQUASEC_GH_TOKEN }}@github.com/aquasec-com/.insteadOf
+          git config --global --unset url.https://${{ secrets.AQUA_SEC_GH_TOKEN }}@github.com/aquasec-com/.insteadOf
