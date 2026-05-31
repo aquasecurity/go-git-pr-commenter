@@ -3,6 +3,9 @@ name: testing for PR
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: testing PR build
