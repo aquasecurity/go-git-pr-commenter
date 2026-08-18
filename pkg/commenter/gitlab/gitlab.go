@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +50,39 @@ type Gitlab struct {
 	PrNumber string
 }
 
-var lockFiles = []string{"package.json", "yarn.lock"}
+// lockFileBasenames lists dependency manifests and lockfiles that GitLab often
+// cannot anchor inline comments on (missing/invalid diff line_code).
+var lockFileBasenames = map[string]struct{}{
+	"package.json":       {},
+	"package-lock.json":  {},
+	"yarn.lock":          {},
+	"pnpm-lock.yaml":     {},
+	"packages.lock.json": {},
+	"packages.config":    {},
+	"gradle.lockfile":    {},
+	"go.sum":             {},
+	"cargo.lock":         {},
+	"conan.lock":         {},
+	"composer.lock":      {},
+	"poetry.lock":        {},
+	"uv.lock":            {},
+	"pipfile.lock":       {},
+	"gemfile.lock":       {},
+	"podfile.lock":       {},
+	"pubspec.lock":       {},
+	"mix.lock":           {},
+	"shard.lock":         {},
+	"carton.lock":        {},
+	"luarocks.lock":      {},
+}
+
+func shouldUseGeneralPrComment(file, gitlabError string) bool {
+	if strings.Contains(gitlabError, "line_code") {
+		return true
+	}
+	_, ok := lockFileBasenames[strings.ToLower(filepath.Base(file))]
+	return ok
+}
 
 func NewGitlab(token, apiUrl, repoName, mergeRequestID string) (b *Gitlab, err error) {
 	return &Gitlab{
@@ -126,9 +159,8 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 			return err
 		}
 		if resp.StatusCode != http.StatusCreated {
-			if lo.ContainsBy(lockFiles, func(lf string) bool {
-				return strings.Contains(string(file), lf)
-			}) {
+			b, _ := io.ReadAll(resp.Body)
+			if shouldUseGeneralPrComment(file, string(b)) {
 				resp, err := c.writeGeneralPrComment(file, comment)
 				if err != nil {
 					return err
@@ -137,7 +169,6 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 					return nil
 				}
 			}
-			b, _ := io.ReadAll(resp.Body)
 			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 		}
 
@@ -165,7 +196,7 @@ func (c *Gitlab) writeGeneralPrComment(file, comment string) (*http.Response, er
 }
 
 func expendComment(comment, file string) string {
-	return fmt.Sprintf("%s\n\n %s\n %s", "_The comment could not be added to the file because the size of the source diff is too large._", fmt.Sprintf("**File Path:** `%s`", file), comment)
+	return fmt.Sprintf("%s\n\n %s\n %s", "_The comment could not be added inline on the file diff._", fmt.Sprintf("**File Path:** `%s`", file), comment)
 }
 
 func (c *Gitlab) getLatestVersion() (v Version, err error) {
