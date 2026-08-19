@@ -25,7 +25,7 @@ jobs:
 
       - name: Generate aquasec-com App token
         id: aquasec_com_token
-        uses: aquasecurity/.github-private/.github/actions/github-app-auth@main
+        uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.AQUASEC_COM_CI_READER_APP_ID }}
           private-key: ${{ secrets.AQUASEC_COM_CI_READER_PRIVATE_KEY }}
@@ -33,7 +33,7 @@ jobs:
 
       - name: Generate argonsecurity App token
         id: argon_token
-        uses: aquasecurity/.github-private/.github/actions/github-app-auth@main
+        uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.ARGON_CI_READER_APP_ID }}
           private-key: ${{ secrets.ARGON_CI_READER_PRIVATE_KEY }}
@@ -51,7 +51,7 @@ jobs:
           args: release --clean # Changed from --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOPRIVATE: github.com/argonsecurity/*, github.com/aquasec-com/*
+          GOPRIVATE: github.com/argonsecurity/*,github.com/aquasec-com/*
 
       - name: Remove auth from git config
         if: always()

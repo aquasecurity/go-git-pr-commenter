@@ -23,7 +23,7 @@ jobs:
 
       - name: Generate aquasec-com App token
         id: aquasec_com_token
-        uses: aquasecurity/.github-private/.github/actions/github-app-auth@github-app-migration
+        uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.AQUASEC_COM_CI_READER_APP_ID }}
           private-key: ${{ secrets.AQUASEC_COM_CI_READER_PRIVATE_KEY }}
@@ -31,7 +31,7 @@ jobs:
 
       - name: Generate argonsecurity App token
         id: argon_token
-        uses: aquasecurity/.github-private/.github/actions/github-app-auth@github-app-migration
+        uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.ARGON_CI_READER_APP_ID }}
           private-key: ${{ secrets.ARGON_CI_READER_PRIVATE_KEY }}
@@ -44,7 +44,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         env:
-          GOPRIVATE: github.com/argonsecurity/*, github.com/aquasec-com/*
+          GOPRIVATE: github.com/argonsecurity/*,github.com/aquasec-com/*
         with:
           args: --timeout=5m
       - name: Remove auth from git config
