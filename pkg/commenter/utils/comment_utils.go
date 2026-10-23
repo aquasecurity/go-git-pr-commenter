@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,10 +34,12 @@ func DeleteComments(url string, headers map[string]string) error {
 	for key, value := range headers {
 		req.Header.Add(key, value)
 	}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = resp.Body.Close() }()
+	_, _ = io.Copy(io.Discard, resp.Body)
 	return nil
 }
 

@@ -48,6 +48,10 @@ type Gitlab struct {
 	Token    string
 	Repo     string
 	PrNumber string
+
+	version             Version
+	versionLoaded       bool
+	versionsUnavailable bool
 }
 
 // lockFileBasenames lists dependency manifests and lockfiles that GitLab often
@@ -76,12 +80,33 @@ var lockFileBasenames = map[string]struct{}{
 	"luarocks.lock":      {},
 }
 
-func shouldUseGeneralPrComment(file, gitlabError string) bool {
-	if strings.Contains(gitlabError, "line_code") {
-		return true
-	}
+func isLockFile(file string) bool {
 	_, ok := lockFileBasenames[strings.ToLower(filepath.Base(file))]
 	return ok
+}
+
+// isGitLabUnavailable reports GitLab's temporary circuit-breaker responses,
+// including the elevated-400 message returned by the merge request versions API.
+func isGitLabUnavailable(msg string) bool {
+	msg = strings.ToLower(msg)
+	return strings.Contains(msg, "elevated 400") ||
+		strings.Contains(msg, "rate limit") ||
+		strings.Contains(msg, "too many requests")
+}
+
+// shouldUseGeneralPrComment reports when an inline discussion should be replaced
+// by a general MR note.
+//
+// A line_code validation error is not enough on its own. GitLab returns that
+// for invalid lines and paths on ordinary source files, and posting an MR note
+// would make WriteLineComment return nil for a comment that was not inline.
+// Positioning fallback is limited to lockfiles. Temporary GitLab unavailability
+// is separate, so a rate-limited versions call can still publish the finding.
+func shouldUseGeneralPrComment(file, gitlabError string) bool {
+	if isGitLabUnavailable(gitlabError) {
+		return true
+	}
+	return isLockFile(file)
 }
 
 func NewGitlab(token, apiUrl, repoName, mergeRequestID string) (b *Gitlab, err error) {
@@ -106,12 +131,28 @@ func (c *Gitlab) WriteMultiLineComment(file, comment string, startLine, _ int) e
 
 // WriteLineComment writes a single review line on a file of the gitlab PR
 func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
+	// Null and blank findings must not create a note or call GitLab.
+	if strings.TrimSpace(comment) == "" {
+		return nil
+	}
+
 	if line == 0 {
 		line = 1
 	}
 
+	// Lockfiles cannot be anchored on the diff, and a tripped versions API
+	// cannot supply the SHAs an inline note needs. Post a general MR note
+	// without calling getLatestVersion.
+	if c.versionsUnavailable || isLockFile(file) {
+		return c.postGeneralPrComment(file, comment)
+	}
+
 	version, err := c.getLatestVersion()
 	if err != nil {
+		if isGitLabUnavailable(err.Error()) {
+			c.versionsUnavailable = true
+			return c.postGeneralPrComment(file, comment)
+		}
 		return fmt.Errorf("failed get latest version: %w", err)
 	}
 	urlValues := url.Values{
@@ -143,39 +184,69 @@ func (c *Gitlab) WriteLineComment(file, comment string, line int) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusCreated {
-		fmt.Printf("failed to write comment to file: %s, trying again... \n", file)
-		urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
-		req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
-			c.ApiURL, c.Repo, c.PrNumber),
-			strings.NewReader(urlValues.Encode()))
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Add("PRIVATE-TOKEN", c.Token)
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusCreated {
-			b, _ := io.ReadAll(resp.Body)
-			if shouldUseGeneralPrComment(file, string(b)) {
-				resp, err := c.writeGeneralPrComment(file, comment)
-				if err != nil {
-					return err
-				} else if resp.StatusCode == http.StatusCreated {
-					fmt.Println("comment created successfully")
-					return nil
-				}
-			}
-			return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
-		}
+	if resp.StatusCode == http.StatusCreated {
+		drainAndClose(resp.Body)
+		return nil
+	}
+	// Release the connection before the retry and the possible MR-note fallback.
+	drainAndClose(resp.Body)
 
-		fmt.Println("comment created successfully")
+	fmt.Printf("failed to write comment to file: %s, trying again... \n", file)
+	urlValues["position[old_line]"] = []string{strconv.Itoa(line)}
+	req, err = http.NewRequest("POST", fmt.Sprintf("%s/projects/%s/merge_requests/%s/discussions",
+		c.ApiURL, c.Repo, c.PrNumber),
+		strings.NewReader(urlValues.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("PRIVATE-TOKEN", c.Token)
+	resp, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+	b, readErr := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if resp.StatusCode != http.StatusCreated {
+		if shouldUseGeneralPrComment(file, string(b)) {
+			if isGitLabUnavailable(string(b)) {
+				c.versionsUnavailable = true
+			}
+			return c.postGeneralPrComment(file, comment)
+		}
+		return fmt.Errorf("failed to write comment to file: %s, on line: %d, with gitlab error: %s", file, line, string(b))
 	}
 
+	fmt.Println("comment created successfully")
 	return nil
+}
+
+// drainAndClose reads a response body to completion and closes it so the
+// HTTP client can reuse the connection.
+func drainAndClose(body io.ReadCloser) {
+	if body == nil {
+		return
+	}
+	_, _ = io.Copy(io.Discard, body)
+	_ = body.Close()
+}
+
+func (c *Gitlab) postGeneralPrComment(file, comment string) error {
+	resp, err := c.writeGeneralPrComment(file, comment)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode == http.StatusCreated {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		fmt.Println("comment created successfully")
+		return nil
+	}
+	noteBody, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("failed to write gitlab MR note for file: %s: %s", file, string(noteBody))
 }
 
 func (c *Gitlab) writeGeneralPrComment(file, comment string) (*http.Response, error) {
@@ -200,6 +271,20 @@ func expendComment(comment, file string) string {
 }
 
 func (c *Gitlab) getLatestVersion() (v Version, err error) {
+	if c.versionLoaded {
+		return c.version, nil
+	}
+
+	v, err = c.fetchLatestVersion()
+	if err != nil {
+		return v, err
+	}
+	c.version = v
+	c.versionLoaded = true
+	return v, nil
+}
+
+func (c *Gitlab) fetchLatestVersion() (v Version, err error) {
 	var vData []Version
 
 	client := &http.Client{}
@@ -213,11 +298,11 @@ func (c *Gitlab) getLatestVersion() (v Version, err error) {
 	if err != nil {
 		return v, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return v, fmt.Errorf("failed get gitlab PR version: %s", string(b))
 	}
-	defer func() { _ = resp.Body.Close() }()
 	err = json.NewDecoder(resp.Body).Decode(&vData)
 	if err != nil {
 		return v, fmt.Errorf("failed decoding gitlab version response with error: %w", err)
@@ -260,11 +345,11 @@ func (c *Gitlab) getIdsToRemove(idsToRemove []DiscussionNote, msg, page string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed getting comments with error: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
 
 	var discussionsResponse []Discussion
 	err = json.Unmarshal(body, &discussionsResponse)
